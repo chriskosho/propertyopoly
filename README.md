@@ -13,11 +13,15 @@ It is a single file, `index.html`. Download it and open it in any modern browser
 - Autosave, manual save and load, export and import as a JSON file
 - Undo within the current turn
 - Sound effects generated in the browser
+- Animations: tossed dice, a doubles flourish, hopping tokens, cash flying between players, flipping cards, and a "Sold" stamp (all skipped when the device asks for reduced motion)
+- TV mode for a big screen, and keyboard shortcuts (Space to roll, Enter to end the turn, U to undo, ? for the full list)
 - Light and dark appearance, reduced-motion support, keyboard-accessible dialogs
 
 ## Tests
 
-Open the browser console and run `runTests()`. It runs 40 rule checks, including a full 8-player bot game.
+Open the browser console and run `runTests()`. It runs 41 rule checks, including a full 8-player bot game.
+
+The same checks run on every push through GitHub Actions (`tests/run-tests.mjs`), along with a short game played through the interface. The site deploys only when they pass.
 
 ## Disclaimer
 

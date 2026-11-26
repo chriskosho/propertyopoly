@@ -178,9 +178,6 @@ button,input,select{font:inherit;color:inherit}
 .dice{display:flex;gap:2.4cqi}
 .die{width:8.6cqi;height:8.6cqi;background:#fff;border:2px solid var(--line);border-radius:1.3cqi;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:11%}
 .die i{background:#0E2A4F;border-radius:50%;margin:13%}
-.die.rolling{animation:tumble .5s cubic-bezier(.3,.7,.4,1)}
-.die.rolling:nth-child(2){animation-delay:.04s}
-@keyframes tumble{0%{transform:rotate(0) translateY(0)}35%{transform:rotate(-160deg) translateY(-18%)}70%{transform:rotate(-320deg) translateY(4%)}100%{transform:rotate(-360deg) translateY(0)}}
 .acts{display:flex;gap:1.3cqi;flex-wrap:wrap;justify-content:center}
 .acts .btn{font-size:max(13px,2.1cqi);background-color:var(--sheet)}
 .acts .btn.primary{background:var(--red);font-size:max(14px,2.5cqi);padding:.6em 1.4em}
@@ -307,6 +304,53 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .how{font-size:.95rem}
 .how li{margin:.25em 0}
 
+/* ---------- Pass 1 animations ---------- */
+.dice{position:relative}
+.die{position:relative;will-change:transform}
+.die.tossing{z-index:6}
+.burst{position:absolute;left:50%;top:50%;width:34cqi;height:34cqi;margin:-17cqi 0 0 -17cqi;pointer-events:none;z-index:5;overflow:visible}
+.burst line{stroke:var(--red);stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.dbl-label{position:absolute;left:50%;top:-1.5cqi;transform:translate(-50%,-100%);font-family:var(--cond);font-stretch:condensed;font-weight:700;
+  font-size:max(18px,4cqi);line-height:1;color:var(--red-ink);background:var(--red);padding:.12em .45em .16em;border-radius:3px;pointer-events:none;z-index:6;white-space:nowrap}
+.cash-chip{position:absolute;left:0;top:0;z-index:7;pointer-events:none;font-family:var(--cond);font-stretch:condensed;font-weight:700;
+  font-size:max(12px,1.9cqi);padding:.18em .5em;border:1.5px solid var(--card-ink);border-radius:2px;background:var(--card);color:var(--card-ink);
+  box-shadow:2px 2px 0 var(--line-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cash-chip.bank{border-color:var(--red);color:#C42A22}
+.stamp{position:absolute;z-index:6;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.stamp span{font-family:var(--cond);font-stretch:condensed;font-weight:800;font-size:max(11px,2.3cqi);color:var(--red);
+  border:max(2px,.35cqi) solid var(--red);border-radius:4px;padding:.05em .4em;background:color-mix(in srgb,var(--sheet) 70%,transparent);
+  transform:rotate(-14deg);letter-spacing:.02em}
+/* card flip */
+.flip{perspective:1000px;margin:6px 0 4px}
+.flip-in{display:grid;transform-style:preserve-3d}
+.flip .face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;margin:0}
+.flip .back{transform:rotateY(180deg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  border:1.5px solid var(--card-ink);color:#fff;font-family:var(--cond);font-stretch:condensed;font-weight:700;font-size:1.6rem}
+.flip .back.chance{background:#C42A22}
+.flip .back.chest{background:#1C4E8A}
+.flip .back svg{width:64px;height:64px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.flip.play .flip-in{animation:flipcard .75s .3s both cubic-bezier(.3,.7,.3,1)}
+@keyframes flipcard{from{transform:rotateY(180deg)}to{transform:rotateY(0)}}
+/* TV mode: the board fills the screen height and the side panel shows players only */
+body.tv #game{padding:1.2vh 1.4vw;gap:1.4vw}
+body.tv .board{width:min(100%,calc(100dvh - 2.4vh))}
+body.tv .side{flex-basis:clamp(260px,24vw,440px)}
+body.tv .log,body.tv #undo-note{display:none}
+body.tv .players{max-height:none}
+body.tv .pl{padding:1.1vh 14px}
+body.tv .pl .disc{width:44px;height:44px}
+body.tv .pl .name{font-size:1.5rem}
+body.tv .pl .cash{font-size:1.75rem}
+body.tv .chip{width:15px;height:21px}
+body.tv .side h2{font-size:1.35rem}
+body.tv .toolbar .btn{font-size:1.05rem}
+body.tv dialog{width:min(820px,calc(100vw - 20px));font-size:1.2rem}
+body.tv dialog h2{font-size:2.5rem}
+body.tv dialog .btn{font-size:1.2rem}
+body.tv dialog .btn.small{font-size:1.02rem}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.95rem;margin:.3em 0}
+.keys kbd{font-family:var(--cond);font-stretch:condensed;border:1.5px solid var(--line);border-radius:3px;padding:0 .45em;background:var(--card);color:var(--card-ink);justify-self:start}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
 }
@@ -371,9 +415,10 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
   <div class="board-wrap"><div id="board" class="board" aria-label="Game board"></div></div>
   <aside class="side" aria-label="Game panel">
     <div class="toolbar">
-      <button class="btn small" data-ui="undo" id="undo-btn">Undo</button>
+      <button class="btn small" data-ui="undo" id="undo-btn" aria-keyshortcuts="U">Undo</button>
       <button class="btn small" data-ui="menu">Game menu</button>
-      <button class="btn small" data-ui="mute" id="mute-btn" aria-pressed="false">Sound on</button>
+      <button class="btn small" data-ui="mute" id="mute-btn" aria-pressed="false" aria-keyshortcuts="M">Sound on</button>
+      <button class="btn small" data-ui="tv" id="tv-btn" aria-pressed="false" aria-keyshortcuts="V">TV mode</button>
     </div>
     <p class="undo-note" id="undo-note"></p>
     <section aria-labelledby="pl-h"><h2 id="pl-h">Players</h2><ul class="players" id="players"></ul></section>
@@ -564,8 +609,10 @@ function rentFor(s, i, opts={}){
 }
 
 /* ---------- money ---------- */
+/* Visual-only events: the UI animates cash moving between players and the bank. */
+function cashFx(s, from, to, amount){ if(amount>0) s.fx.push({type:'money', from, to, amount}); }
 function credit(s, pi, amount, reason){
-  s.players[pi].cash += amount;
+  s.players[pi].cash += amount; cashFx(s, null, pi, amount);
   log(s, `${nm(s,pi)} collected ${money(amount)} for ${reason}.`, 'money');
   s.fx.push({type:'sound', name:'collect'});
 }
@@ -577,6 +624,7 @@ function charge(s, from, amount, to, reason){
   if(!indebted && p.cash>=amount){
     p.cash -= amount;
     if(to!=null) s.players[to].cash += amount;
+    cashFx(s, from, to, amount);
     log(s, `${p.name} paid ${money(amount)} to ${to!=null?nm(s,to):'the bank'} for ${reason}.`, 'money');
     s.fx.push({type:'sound', name:'pay'});
   } else {
@@ -629,7 +677,7 @@ function land(s, pi, opts={}){
     let diceTotal = s.dice ? s.dice[0]+s.dice[1] : 0;
     if(sp.type==='util' && opts.utilTen){
       const d = rollDice(s); diceTotal = d[0]+d[1];
-      s.fx.push({type:'dice', dice:d});
+      s.fx.push({type:'dice', dice:d, util:true});
       log(s, `${p.name} rolled ${d[0]} and ${d[1]} to work out the utility payment.`, 'roll');
     }
     charge(s, pi, rentFor(s, i, {...opts, diceTotal}), pr.owner, `rent on ${sp.name}`);
@@ -716,8 +764,9 @@ function checkAuction(s){
     return;
   }
   const w = s.players[pd.highBidder]; w.cash -= pd.high;
+  cashFx(s, w.id, null, pd.high);
   s.fx.push({type:'sound', name:'buy'});
-  if(pd.kind==='property'){ s.props[pd.space].owner = w.id; log(s, `${w.name} won ${BOARD[pd.space].name} at auction for ${money(pd.high)}.`, 'money'); }
+  if(pd.kind==='property'){ s.props[pd.space].owner = w.id; s.fx.push({type:'sold', space:pd.space}); log(s, `${w.name} won ${BOARD[pd.space].name} at auction for ${money(pd.high)}.`, 'money'); }
   else { s.pending = {type:'place', player:w.id, kind:pd.kind}; log(s, `${w.name} won the ${pd.kind} for ${money(pd.high)}.`, 'money'); }
 }
 function validateTrade(s, t){
@@ -751,13 +800,13 @@ function goBankrupt(s, pi){
     p.cash += pr.houses * BOARD[i].house/2; pr.houses = 0; }
   const owned = OWNABLE.filter(i=>s.props[i].owner===pi);
   if(heir!=null){
-    const h = s.players[heir]; h.cash += p.cash;
+    const h = s.players[heir]; h.cash += p.cash; cashFx(s, pi, heir, p.cash);
     log(s, `${p.name} is bankrupt. ${h.name} receives ${money(p.cash)} and all of ${p.name}’s property.`, 'warn');
     for(const i of owned){ s.props[i].owner = heir; if(s.props[i].mortgaged) s.queue.push({type:'mortFee', player:heir, space:i}); }
     h.cards.push(...p.cards);
   } else {
     let cash = p.cash;
-    for(const d of mine){ if(d.creditor!=null && cash>0){ const a=Math.min(cash,d.amount); s.players[d.creditor].cash+=a; cash-=a; } }
+    for(const d of mine){ if(d.creditor!=null && cash>0){ const a=Math.min(cash,d.amount); s.players[d.creditor].cash+=a; cashFx(s, pi, d.creditor, a); cash-=a; } }
     log(s, `${p.name} is bankrupt. Their property returns to the bank and will be auctioned.`, 'warn');
     for(const i of owned){ s.props[i].owner = null; s.props[i].mortgaged = false;
       s.queue.push({type:'auction', kind:'property', space:i, high:0, min:1, highBidder:null, active:null}); }
@@ -800,7 +849,7 @@ const HANDLERS = {
     const p = s.players[s.cur];
     need(!busy(s) && s.phase==='start' && p.inJail, 'You can only pay the fine before rolling while in jail.');
     need(p.cash>=JAIL_FINE, `You need ${money(JAIL_FINE)} to pay the fine.`);
-    p.cash -= JAIL_FINE; p.inJail = false; p.jailTurns = 0;
+    p.cash -= JAIL_FINE; p.inJail = false; p.jailTurns = 0; cashFx(s, s.cur, null, JAIL_FINE);
     log(s, `${p.name} paid the ${money(JAIL_FINE)} fine and left jail.`, 'money'); s.fx.push({type:'sound', name:'pay'});
   },
   JAIL_CARD(s){
@@ -839,6 +888,7 @@ const HANDLERS = {
     const p = s.players[pd.player], sp = BOARD[pd.space];
     need(p.cash>=sp.price, `You need ${money(sp.price)}. Sell or mortgage something, or send it to auction.`);
     p.cash -= sp.price; s.props[pd.space].owner = pd.player; s.pending = null;
+    cashFx(s, pd.player, null, sp.price); s.fx.push({type:'sold', space:pd.space});
     log(s, `${p.name} bought ${sp.name} for ${money(sp.price)}.`, 'money'); s.fx.push({type:'sound', name:'buy'});
   },
   DECLINE_BUY(s){
@@ -888,7 +938,7 @@ const HANDLERS = {
       startAuction(s, {kind, eligible:elig, min:sp.house});
       return;
     }
-    s.players[pi].cash -= sp.house; placeBuilding(s, i);
+    s.players[pi].cash -= sp.house; cashFx(s, pi, null, sp.house); placeBuilding(s, i);
     log(s, `${nm(s,pi)} built a ${kind} on ${sp.name} for ${money(sp.house)}.`, 'money');
   },
   SELL(s, a){
@@ -901,11 +951,11 @@ const HANDLERS = {
     if(pr.houses===5){
       const n = Math.min(4, s.bank.houses);
       s.bank.hotels++; s.bank.houses -= n; pr.houses = n;
-      s.players[pi].cash += (5-n)*half;
+      s.players[pi].cash += (5-n)*half; cashFx(s, null, pi, (5-n)*half);
       log(s, n===4 ? `${nm(s,pi)} sold the hotel on ${sp.name} for ${money(half)} and got four houses back.`
                    : `${nm(s,pi)} sold the hotel on ${sp.name}. The bank had only ${n} house${n===1?'':'s'} to give back, so they received ${money((5-n)*half)}.`, 'money');
     } else {
-      pr.houses--; s.bank.houses++; s.players[pi].cash += half;
+      pr.houses--; s.bank.houses++; s.players[pi].cash += half; cashFx(s, null, pi, half);
       log(s, `${nm(s,pi)} sold a house on ${sp.name} for ${money(half)}.`, 'money');
     }
     s.fx.push({type:'sound', name:'collect'});
@@ -915,7 +965,7 @@ const HANDLERS = {
     const pi = pr.owner; need(pi!=null && canManage(s, pi, 'raise'), 'You can’t mortgage right now.');
     need(!pr.mortgaged, 'This property is already mortgaged.');
     if(sp.type==='prop') need(!groupHasBuildings(s, sp.group), 'Sell every building in this color group first.');
-    pr.mortgaged = true; s.players[pi].cash += sp.mort;
+    pr.mortgaged = true; s.players[pi].cash += sp.mort; cashFx(s, null, pi, sp.mort);
     log(s, `${nm(s,pi)} mortgaged ${sp.name} for ${money(sp.mort)}.`, 'money'); s.fx.push({type:'sound', name:'collect'});
   },
   UNMORTGAGE(s, a){
@@ -923,7 +973,7 @@ const HANDLERS = {
     const pi = pr.owner; need(pi===s.cur && canManage(s, pi, 'full'), 'You can unmortgage only on your own turn.');
     need(pr.mortgaged, 'This property isn’t mortgaged.');
     const cost = unmortgageCost(i); need(s.players[pi].cash>=cost, `Unmortgaging costs ${money(cost)}.`);
-    s.players[pi].cash -= cost; pr.mortgaged = false;
+    s.players[pi].cash -= cost; pr.mortgaged = false; cashFx(s, pi, null, cost);
     log(s, `${nm(s,pi)} unmortgaged ${sp.name} for ${money(cost)}.`, 'money'); s.fx.push({type:'sound', name:'pay'});
   },
   TRADE_PROPOSE(s, a){
@@ -939,7 +989,7 @@ const HANDLERS = {
     const t = s.pending; need(t && t.type==='trade', 'There is no trade offer.');
     validateTrade(s, t);
     const move = (from, to, side) => {
-      s.players[from].cash -= side.cash; s.players[to].cash += side.cash;
+      s.players[from].cash -= side.cash; s.players[to].cash += side.cash; cashFx(s, from, to, side.cash);
       for(const i of side.props){ s.props[i].owner = to; if(s.props[i].mortgaged) s.queue.push({type:'mortFee', player:to, space:i}); }
       for(const c of side.cards){ const p=s.players[from]; p.cards.splice(p.cards.indexOf(c),1); s.players[to].cards.push(c); }
     };
@@ -956,7 +1006,7 @@ const HANDLERS = {
     const i = pd.space, sp = BOARD[i], p = s.players[pd.player];
     if(a.choice==='unmortgage'){
       const cost = unmortgageCost(i); need(p.cash>=cost, `Unmortgaging costs ${money(cost)}.`);
-      p.cash -= cost; s.props[i].mortgaged = false; s.pending = null;
+      p.cash -= cost; s.props[i].mortgaged = false; s.pending = null; cashFx(s, pd.player, null, cost);
       log(s, `${p.name} unmortgaged ${sp.name} for ${money(cost)}.`, 'money');
     } else {
       s.pending = null;
@@ -968,6 +1018,7 @@ const HANDLERS = {
     const d = s.debts[0], p = s.players[d.debtor];
     need(p.cash>=d.amount, `${p.name} needs ${money(d.amount - p.cash)} more.`);
     p.cash -= d.amount; if(d.creditor!=null) s.players[d.creditor].cash += d.amount;
+    cashFx(s, d.debtor, d.creditor, d.amount);
     s.debts.shift();
     log(s, `${p.name} paid ${money(d.amount)} to ${d.creditor!=null?nm(s,d.creditor):'the bank'} for ${d.reason}.`, 'money');
     s.fx.push({type:'sound', name:'pay'});
@@ -1091,9 +1142,9 @@ const LS = {
   set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} },
 };
-const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup';
+const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup', KEY_TV='mono.tv';
 const ui = {state:null, history:[], modalKey:null, userModal:null, animating:false, displayPos:[], handoffSeen:0,
-  overDismissed:false, tradeDraft:null, tradeGate:null, muted:LS.get(KEY_MUTE)==='1', confirmNew:false, lastRingPos:null};
+  overDismissed:false, tradeDraft:null, tradeGate:null, muted:LS.get(KEY_MUTE)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null};
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
@@ -1138,6 +1189,10 @@ const sfx = {
       case 'card': this.noise(0.26, {freq:3800, q:0.6, gain:0.14}); break;
       case 'jail': this.tone(120, 0.55, {type:'square', gain:0.06, slide:70}); this.noise(0.25, {freq:420, q:2, gain:0.25}); this.noise(0.2, {when:0.18, freq:380, q:2, gain:0.2}); break;
       case 'build': this.noise(0.05, {freq:950, q:5, gain:0.5}); this.noise(0.05, {when:0.11, freq:900, q:5, gain:0.5}); break;
+      case 'thud': this.tone(95, 0.18, {gain:0.22, slide:48}); this.noise(0.07, {freq:300, q:1.5, gain:0.35}); break;
+      case 'doubles': [784,988,1319].forEach((f,i)=>this.tone(f, 0.16, {when:i*0.075, type:'square', gain:0.045})); this.tone(1568, 0.3, {when:0.24, type:'triangle', gain:0.08}); break;
+      case 'stamp': this.noise(0.09, {freq:520, q:1.2, gain:0.5}); this.tone(140, 0.12, {gain:0.12, slide:70}); break;
+      case 'flip': this.noise(0.12, {freq:5200, q:0.8, gain:0.12}); break;
       case 'victory': [523,659,784,1047,1319].forEach((f,i)=>this.tone(f, 0.38, {when:i*0.13, type:'triangle', gain:0.1})); break;
     }
   },
@@ -1166,6 +1221,8 @@ async function dispatch(action){
   ui.history.push({turnNo:ui.state.turnNo, state:ui.state});
   if(ui.history.length>40) ui.history.shift();
   ui.state = next; autosave();
+  // A decision that is now settled closes before the animations, so they aren't hidden behind it.
+  if(!requiredModal(next) && !ui.userModal && $('#modal').open){ $('#modal').close(); ui.modalKey = null; }
   ui.animating = true; updateToolbar();
   try { await playFx(next.fx); } finally { ui.animating = false; }
   render();
@@ -1179,25 +1236,123 @@ function undo(){
 }
 async function playFx(fx){
   const fast = reducedMotion();
+  const running = [];                        // cash and stamps play alongside the next steps
   for(const f of fx){
-    if(f.type==='dice'){
-      sfx.play('dice');
-      const dice = $$('#dice .die');
-      if(!fast && dice.length===2){
-        dice.forEach(d=>{ d.classList.remove('rolling'); void d.offsetWidth; d.classList.add('rolling'); });
-        for(let k=0;k<6;k++){ dice.forEach(d=>d.innerHTML = pips(1+Math.floor(Math.random()*6))); await sleep(75); }
-      }
-      dice.forEach((d,k)=>{ d.innerHTML = pips(f.dice[k]); d.setAttribute('aria-label', `Die showing ${f.dice[k]}`); });
-      if(!fast) await sleep(140);
-    } else if(f.type==='move'){
-      const steps = f.jump || fast ? 0 : f.steps;
-      if(steps>0){
-        const delay = steps>12 ? 70 : 135;
-        for(let k=1;k<=steps;k++){ ui.displayPos[f.player] = (f.from+k)%40; placeTokens(); sfx.play('step'); await sleep(delay); }
-      } else { ui.displayPos[f.player] = f.to; placeTokens(); if(!fast) await sleep(260); }
-      drawRing(f.to, true);
-    } else if(f.type==='sound'){ sfx.play(f.name); }
+    if(f.type==='dice') await animateDice(f, fast);
+    else if(f.type==='move') await animateMove(f, fast);
+    else if(f.type==='money'){ if(!fast){ running.push(flyMoney(f)); await sleep(120); } }
+    else if(f.type==='sold'){ if(!fast) running.push(stampSold(f.space)); }
+    else if(f.type==='sound') sfx.play(f.name);
   }
+  await Promise.all(running);
+}
+const boardPx = () => $('#board').clientWidth;
+/* Dice are tossed in from the left, bounce once and settle. */
+async function animateDice(f, fast){
+  const dice = $$('#dice .die');
+  const show = () => dice.forEach((d,k)=>{ d.innerHTML = pips(f.dice[k]); d.setAttribute('aria-label', `Die showing ${f.dice[k]}`); });
+  sfx.play('dice');
+  if(fast || dice.length!==2 || !dice[0].animate){ show(); return; }
+  const W = boardPx(), dur = 820;
+  const anims = dice.map((d,k)=>{
+    d.classList.add('tossing');
+    const sx = -W*(0.34 + k*0.05), sy = -W*(0.11 - k*0.03), spin = k ? 620 : -700;
+    return d.animate([
+      {transform:`translate(${sx}px,${sy}px) rotate(${spin}deg) scale(.7)`, opacity:0, offset:0},
+      {opacity:1, offset:.12},
+      {transform:`translate(${W*0.015}px,0) rotate(${spin*0.06}deg) scale(1.04)`, offset:.55, easing:'cubic-bezier(.3,.6,.4,1)'},
+      {transform:`translate(${W*0.004}px,${-W*0.035}px) rotate(${-spin*0.02}deg)`, offset:.72, easing:'ease-in'},
+      {transform:'translate(0,0) rotate(0deg) scale(1,.94)', offset:.86, easing:'ease-out'},
+      {transform:'translate(0,0) rotate(0deg) scale(1)', offset:1},
+    ], {duration:dur, delay:k*70, easing:'linear', fill:'backwards'});
+  });
+  let landed = false;
+  setTimeout(()=>{ landed = true; show(); sfx.play('thud'); }, dur*0.55 + 30);
+  while(!landed){ dice.forEach(d=>d.innerHTML = pips(1+Math.floor(Math.random()*6))); await sleep(70); }
+  await Promise.all(anims.map(a=>a.finished.catch(()=>{})));
+  dice.forEach(d=>d.classList.remove('tossing'));
+  if(f.dice[0]===f.dice[1] && !f.util) await doublesFlourish();
+  else await sleep(100);
+}
+async function doublesFlourish(){
+  const box = $('#dice'); if(!box) return;
+  sfx.play('doubles');
+  const rays = Array.from({length:12}, (_,k)=>{ const a = k*Math.PI/6, r1 = 26, r2 = 48;
+    return `<line x1="${50+r1*Math.cos(a)}" y1="${50+r1*Math.sin(a)}" x2="${50+r2*Math.cos(a)}" y2="${50+r2*Math.sin(a)}"/>`; }).join('');
+  const burst = document.createElement('div');
+  burst.innerHTML = `<svg class="burst" viewBox="0 0 100 100" aria-hidden="true">${rays}</svg><span class="dbl-label">Doubles</span>`;
+  const [svg, label] = burst.children;
+  box.append(svg, label);
+  svg.animate([{transform:'scale(.45)', opacity:0},{transform:'scale(1)', opacity:1, offset:.35},{transform:'scale(1.2)', opacity:0}], {duration:900, easing:'ease-out'});
+  const la = label.animate([{transform:'translate(-50%,-60%) scale(.6)', opacity:0},{transform:'translate(-50%,-100%) scale(1.1)', opacity:1, offset:.3},
+    {transform:'translate(-50%,-115%) scale(1)', opacity:1, offset:.75},{transform:'translate(-50%,-140%)', opacity:0}], {duration:1200, easing:'ease-out'});
+  await sleep(520);
+  la.finished.then(()=>{ svg.remove(); label.remove(); }).catch(()=>{ svg.remove(); label.remove(); });
+}
+/* Tokens hop from space to space. */
+async function animateMove(f, fast){
+  const tok = $(`#board .tok[data-p="${f.player}"]`);
+  const steps = f.jump || fast ? 0 : f.steps;
+  if(steps>0){
+    const delay = steps>12 ? 80 : 150;
+    tok.style.transition = `transform ${delay}ms cubic-bezier(.4,.1,.4,1)`;
+    const disc = $('.disc', tok);
+    for(let k=1;k<=steps;k++){
+      ui.displayPos[f.player] = (f.from+k)%40; placeTokens();
+      disc.animate([{transform:'translateY(0) scale(1)'},{transform:`translateY(-${steps>12?28:48}%) scale(1.08)`, offset:.45},{transform:'translateY(0) scale(1)'}],
+        {duration:delay, easing:'ease-out'});
+      sfx.play('step'); await sleep(delay);
+    }
+    disc.animate([{transform:'scale(1.12,.84)'},{transform:'scale(1)'}], {duration:160, easing:'ease-out'});
+    tok.style.transition = '';
+  } else {
+    ui.displayPos[f.player] = f.to; placeTokens(); if(!fast) await sleep(280);
+  }
+  drawRing(f.to, true);
+}
+/* A cash note flies from payer to payee. The bank lives in the middle of the board. */
+function pointFor(pi){
+  const board = $('#board'), br = board.getBoundingClientRect();
+  const el = pi==null || ui.state.players[pi]?.bankrupt ? $('#dice') || $('#center') : $(`.tok[data-p="${pi}"]`, board);
+  const r = el.getBoundingClientRect();
+  return {x:r.left - br.left + r.width/2, y:r.top - br.top + r.height/2};
+}
+function flyMoney(f){
+  const board = $('#board'); if(!board.animate) return Promise.resolve();
+  const a = pointFor(f.from), b = pointFor(f.to);
+  const chip = document.createElement('div');
+  chip.className = 'cash-chip' + (f.to==null ? ' bank' : '');
+  chip.textContent = money(f.amount);
+  board.appendChild(chip);
+  const w = chip.offsetWidth, h = chip.offsetHeight, lift = Math.max(30, Math.hypot(b.x-a.x, b.y-a.y)*0.28);
+  const at = (x,y,sc) => `translate(${x-w/2}px,${y-h/2}px) scale(${sc})`;
+  const anim = chip.animate([
+    {transform:at(a.x,a.y,.5), opacity:0},
+    {transform:at(a.x,a.y-12,1), opacity:1, offset:.15},
+    {transform:at((a.x+b.x)/2,(a.y+b.y)/2-lift,1.05), opacity:1, offset:.55},
+    {transform:at(b.x,b.y,.85), opacity:1, offset:.9},
+    {transform:at(b.x,b.y,.6), opacity:0},
+  ], {duration:950, easing:'cubic-bezier(.35,.2,.3,1)'});
+  return anim.finished.catch(()=>{}).then(()=>chip.remove());
+}
+/* "Sold" is stamped onto a space when it changes hands from the bank. */
+function stampSold(i){
+  const board = $('#board'), el = board.querySelector(`.space[data-i="${i}"]`); if(!el || !board.animate) return Promise.resolve();
+  const br = board.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const st = document.createElement('div'); st.className = 'stamp';
+  Object.assign(st.style, {left:(r.left-br.left)+'px', top:(r.top-br.top)+'px', width:r.width+'px', height:r.height+'px'});
+  st.innerHTML = '<span>Sold</span>';
+  board.appendChild(st);
+  setTimeout(()=>sfx.play('stamp'), 370);
+  const anim = st.animate([
+    {transform:'scale(2.6)', opacity:0},
+    {transform:'scale(2.2)', opacity:.6, offset:.12, easing:'cubic-bezier(.6,0,.9,.5)'},
+    {transform:'scale(.94)', opacity:1, offset:.22, easing:'ease-out'},
+    {transform:'scale(1)', opacity:1, offset:.3},
+    {transform:'scale(1)', opacity:1, offset:.82},
+    {transform:'scale(1)', opacity:0},
+  ], {duration:1700, easing:'linear'});
+  return anim.finished.catch(()=>{}).then(()=>st.remove());
 }
 
 /* =====================================================================
@@ -1310,6 +1465,7 @@ function render(){
   renderBoardMarks(s); renderCenter(s); renderPlayers(s); renderLog(s); updateToolbar();
   placeTokens(); drawRing(s.players[s.cur].pos, ui.lastRingPos!==s.players[s.cur].pos);
   syncModal();
+  if(!$('#modal').open && (!document.activeElement || document.activeElement===document.body || !document.activeElement.isConnected || document.activeElement.closest('#center'))) focusMainAction();
 }
 function renderBoardMarks(s){
   for(const i of OWNABLE){
@@ -1341,16 +1497,16 @@ function renderCenter(s){
   } else if(s.phase==='start'){
     if(p.inJail){
       status = p.jailTurns===2 ? 'In jail. Last try: if you miss doubles, you pay $50 and move.' : `In jail. Try ${p.jailTurns+1} of 3 to roll doubles, or pay to get out now.`;
-      acts = `<button class="btn primary" ${act({type:'JAIL_ROLL'})}>Roll for doubles</button>
+      acts = `<button class="btn primary" ${act({type:'JAIL_ROLL'})} aria-keyshortcuts="Space">Roll for doubles</button>
               <button class="btn" ${act({type:'JAIL_PAY'})} ${p.cash<JAIL_FINE?'disabled':''}>Pay ${money(JAIL_FINE)} fine</button>
               ${p.cards.length?`<button class="btn" ${act({type:'JAIL_CARD'})}>Use Get Out of Jail Free</button>`:''}`;
     } else {
       status = s.doubles>0 ? 'You rolled doubles. Roll again.' : 'Roll the dice to move.';
-      acts = `<button class="btn primary" ${act({type:'ROLL'})}>Roll dice</button>`;
+      acts = `<button class="btn primary" ${act({type:'ROLL'})} aria-keyshortcuts="Space">Roll dice</button>`;
     }
   } else {
     status = p.bankrupt ? `${p.name} is out of the game.` : 'Build, mortgage or trade if you like, then end your turn.';
-    acts = `<button class="btn primary" ${act({type:'END_TURN'})}>End turn</button>`;
+    acts = `<button class="btn primary" ${act({type:'END_TURN'})} aria-keyshortcuts="Enter">End turn</button>`;
   }
   const d = s.dice || [1,1];
   $('#center').innerHTML = `
@@ -1404,6 +1560,7 @@ function updateToolbar(){
   $('#undo-note').textContent = !ui.history.length ? 'Undo works for actions in the current turn.' :
     `Undo is available for ${ui.history.length} action${ui.history.length>1?'s':''}. Dice results stay the same if you redo a roll.`;
   const m = $('#mute-btn'); m.textContent = ui.muted ? 'Sound off' : 'Sound on'; m.setAttribute('aria-pressed', String(!ui.muted));
+  const tv = $('#tv-btn'); tv.textContent = ui.tv ? 'Exit TV mode' : 'TV mode'; tv.setAttribute('aria-pressed', String(ui.tv));
 }
 
 /* ---------- dialogs ---------- */
@@ -1414,6 +1571,11 @@ function requiredModal(s){
   if(s.turnNo>ui.handoffSeen) return 'handoff';
   return null;
 }
+/* After a dialog closes, put focus on the main action so the keyboard flow continues. */
+function focusMainAction(){
+  const b = $('#center .acts .btn.primary');
+  if(b && !b.disabled) b.focus({preventScroll:true});
+}
 function openUser(key){ if(requiredModal(ui.state)) return; ui.userModal = key; syncModal(); }
 function closeUser(){ ui.userModal = null; syncModal(); }
 function syncModal(){
@@ -1421,13 +1583,17 @@ function syncModal(){
   const req = requiredModal(s);
   if(req) ui.userModal = null;
   const key = req || ui.userModal;
-  if(!key){ if(dlg.open) dlg.close(); ui.modalKey = null; return; }
+  if(!key){
+    if(dlg.open){ dlg.close(); focusMainAction(); }
+    ui.modalKey = null; return;
+  }
   const fullKey = key + (req==='pending' ? ':'+s.pending.type : '');
   const fid = document.activeElement && dlg.contains(document.activeElement) ? document.activeElement.dataset.fid : null;
   const undoBar = req && req!=='over' && ui.history.length
     ? `<div class="undo-bar"><button class="btn small ghost" data-ui="undo" data-fid="undo">Undo last action</button></div>` : '';
   $('#modal-body').innerHTML = modalHTML(key) + undoBar;
   if(!dlg.open) dlg.showModal();
+  if(fullKey==='pending:card' && ui.modalKey!=='pending:card' && !reducedMotion()) setTimeout(()=>sfx.play('flip'), 420);
   const again = fid && $(`[data-fid="${CSS.escape(fid)}"]`, dlg);
   if(fullKey===ui.modalKey && again && !again.disabled) again.focus();
   else ($('[autofocus]', dlg) || $('button:not(:disabled), input', dlg))?.focus();
@@ -1542,7 +1708,10 @@ function modalHTML(key){
       case 'card': {
         const c = deckOf(pd.deck)[pd.card];
         return `<h2 id="modal-title">${esc(nm(s,pd.player))} draws a card</h2>
-          <div class="gamecard"><div class="deck ${pd.deck}">${deckName(pd.deck)}</div><p>${esc(c.text)}</p></div>
+          <div class="flip ${reducedMotion()?'':'play'}"><div class="flip-in">
+            <div class="face back ${pd.deck}" aria-hidden="true">${pd.deck==='chance'?GLYPH.chance:GLYPH.chest}<span>${deckName(pd.deck)}</span></div>
+            <div class="face front gamecard"><div class="deck ${pd.deck}">${deckName(pd.deck)}</div><p>${esc(c.text)}</p></div>
+          </div></div>
           <div class="row-btns"><button class="btn primary" ${act({type:'CARD_ACK'})} autofocus>${c.fx.goojf?'Keep the card':'Continue'}</button></div>`;
       }
       case 'auction': {
@@ -1629,6 +1798,17 @@ function modalHTML(key){
         <li>If you can’t pay, sell and mortgage. If that still isn’t enough, you’re bankrupt. Last player standing wins.</li>
         <li>Tap any space to see its title deed. Undo works for actions in the current turn.</li>
       </ul>
+      <h3>Keyboard shortcuts</h3>
+      <div class="keys">
+        <kbd>Space</kbd><span>Roll the dice</span>
+        <kbd>Enter</kbd><span>End your turn</span>
+        <kbd>U</kbd><span>Undo the last action</span>
+        <kbd>B</kbd><span>Build and mortgage</span>
+        <kbd>T</kbd><span>Propose a trade</span>
+        <kbd>M</kbd><span>Sound on or off</span>
+        <kbd>V</kbd><span>TV mode</span>
+        <kbd>?</kbd><span>Open this menu</span>
+      </div>
       <div class="row-btns"><button class="btn" data-ui="newgame">${ui.confirmNew?'Press again to quit this game':'Start a new game'}</button><button class="btn" data-ui="close">Close</button></div>`;
   }
   return '';
@@ -1700,6 +1880,7 @@ function uiCommand(cmd, el){
     case 'tradeSend': readTradeForm(); { const t = ui.tradeDraft; ui.userModal = null; dispatch({type:'TRADE_PROPOSE', to:t.to, give:t.give, get:t.get}).then(()=>{ if(ui.state.pending?.type!=='trade') { ui.userModal='trade'; syncModal(); } }); } break;
     case 'customBid': { const id = +el.dataset.player, v = +$(`#cb${id}`).value; if(!v){ toast('Enter a bid amount first.'); return; } dispatch({type:'AUCTION_BID', player:id, amount:v}); } break;
     case 'undo': undo(); break;
+    case 'tv': setTV(!ui.tv, true); break;
     case 'mute': ui.muted = !ui.muted; LS.set(KEY_MUTE, ui.muted?'1':'0'); updateToolbar(); if(!ui.muted) sfx.play('collect'); break;
     case 'save': LS.set(KEY_SLOT, JSON.stringify(s)) ? toast(`Saved at turn ${s.turnNo}.`) : toast('This browser blocked saving. Use Export to a file instead.'); syncModal(); break;
     case 'loadslot': { const raw = LS.get(KEY_SLOT); try{ const o = JSON.parse(raw); if(!validState(o)) throw 0; startWithState(o); toast(`Loaded the saved game at turn ${o.turnNo}.`); }catch(e){ toast('The saved game couldn’t be read.'); } } break;
@@ -1725,8 +1906,33 @@ $('#file-in').addEventListener('change', async e=>{
   try{ const o = JSON.parse(await f.text()); if(!validState(o)) throw 0; startWithState(o); toast(`Opened a game at turn ${o.turnNo}.`); }
   catch(err){ toast('That file isn’t a saved game from this app.'); }
 });
+function setTV(on, fromClick){
+  ui.tv = on; document.body.classList.toggle('tv', on); LS.set(KEY_TV, on?'1':'0'); updateToolbar();
+  try{
+    if(on && fromClick && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+    if(!on && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  }catch(e){}
+}
+/* Keyboard shortcuts. Inside dialogs, Enter and Space act on the focused button as usual. */
+document.addEventListener('keydown', e=>{
+  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey) return;
+  if(e.target.closest && e.target.closest('input,select,textarea')) return;
+  const k = e.key.length===1 ? e.key.toLowerCase() : e.key;
+  if((k==='z' && e.ctrlKey) || (k==='u' && !e.ctrlKey)){ e.preventDefault(); undo(); return; }
+  if(e.ctrlKey || $('#modal').open || ui.animating) return;
+  const onButton = !!(e.target.closest && e.target.closest('button'));
+  const press = sel => { const b = $(sel); if(b && !b.disabled){ e.preventDefault(); b.click(); } };
+  if(k===' ' || k==='r'){ if(k===' ' && onButton) return; press(`#center [data-a*='"ROLL"'], #center [data-a*='"JAIL_ROLL"']`); }
+  else if(k==='Enter' || k==='e'){ if(k==='Enter' && onButton) return; press(`#center [data-a*='"END_TURN"']`); }
+  else if(k==='b') press('#center [data-ui="manage"]');
+  else if(k==='t') press('#center [data-ui="trade"]');
+  else if(k==='m') press('#mute-btn');
+  else if(k==='v') press('#tv-btn');
+  else if(k==='?' || k==='h') press('[data-ui="menu"]');
+});
 let resizeRaf = 0;
-new ResizeObserver(()=>{ cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(()=>{ if(ui.state && !$('#game').hidden){ placeTokens(); drawRing(ui.state.players[ui.state.cur].pos, false); } }); }).observe(document.documentElement);
+const resizeObs = new ResizeObserver(()=>{ cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(()=>{ if(ui.state && !$('#game').hidden){ placeTokens(); drawRing(ui.state.players[ui.state.cur].pos, false); } }); });
+resizeObs.observe(document.documentElement); resizeObs.observe($('#board'));
 
 function startWithState(s){
   s.fx = [];
@@ -1832,6 +2038,12 @@ function runTests(){
   t('Landing on owned property pays rent', ()=>{
     let s = base(); own(s,1,[3]); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'});
     eq(s.players[0].pos, 3); eq(s.players[0].cash, 1496); eq(s.players[1].cash, 1504); eq(s.phase, 'end');
+  });
+  t('Money and purchase events match the transfers', ()=>{
+    let s = base(); own(s,1,[3]); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'});
+    eq(s.fx.filter(f=>f.type==='money'), [{type:'money', from:0, to:1, amount:4}]);
+    s = base(); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'}); s = R(s,{type:'BUY'});
+    eq(s.fx.filter(f=>f.type!=='sound'), [{type:'money', from:0, to:null, amount:60}, {type:'sold', space:3}]);
   });
   t('Passing Go pays $200', ()=>{ let s = base(); s.players[0].pos = 38; s.debugDice = [[2,3]]; s = R(s,{type:'ROLL'}); eq(s.players[0].pos, 3); eq(s.pending.type,'buy'); eq(s.players[0].cash, 1700); });
   t('Buying a property', ()=>{ let s = base(); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'}); s = R(s,{type:'BUY'}); eq(s.props[3].owner, 0); eq(s.players[0].cash, 1440); });
@@ -2006,6 +2218,7 @@ window.__mono = {
   dispatch, ui,
 };
 
+document.body.classList.toggle('tv', ui.tv);
 showSetup();
 </script>
 </body>
