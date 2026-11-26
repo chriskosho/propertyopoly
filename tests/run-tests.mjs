@@ -231,6 +231,39 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
+// 8. A card that moves the token: the card closes, the token is seen moving, then the landing card appears.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1280, height: 820 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.click('#modal[open] [data-ui=handoffOk]');
+  await page.evaluate(() => {
+    const s = __mono.state; const deck = deckOf('chance');
+    s.players[0].pos = 7; __mono.ui.displayPos = s.players.map(p => p.pos);
+    s.pending = { type: 'card', player: 0, deck: 'chance', card: deck.findIndex(c => c.fx.nearest === 'rail') };
+    s.phase = 'moved'; render();
+  });
+  await page.waitForSelector('#modal[open] .flip, #modal[open] [data-act]', { timeout: 3000 }).catch(() => {});
+  const seen = { modalDuringMove: false, positions: new Set() };
+  await page.evaluate(() => {
+    window.__watch = { open: [], pos: [] };
+    const iv = setInterval(() => { if (!__mono.ui.animating) return; window.__watch.open.push(document.querySelector('#modal').open); window.__watch.pos.push(__mono.ui.displayPos[0]); }, 40);
+    window.__stopWatch = () => clearInterval(iv);
+  });
+  await page.click('#modal[open] button.primary');
+  await page.waitForSelector('#modal[open] h2', { timeout: 6000 });
+  const w = await page.evaluate(() => { __stopWatch(); return window.__watch; });
+  const title = await page.evaluate(() => document.querySelector('#modal h2')?.textContent || '');
+  if (w.open.some(Boolean)) problems.push('card move: a dialog was open while the token moved');
+  const hops = new Set(w.pos).size;
+  if (hops < 3) problems.push(`card move: the token was seen on only ${hops} spaces while moving`);
+  if (!/Reading Railroad|Pennsylvania|B\. ?& ?O|Short Line|Railroad/.test(title)) problems.push('card move: landing card did not appear after the move: ' + title);
+  console.log(`Card move test: dialog closed while moving, token seen on ${hops} spaces, then "${title}"`);
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
