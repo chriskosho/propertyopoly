@@ -471,7 +471,7 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
-// 14. Immersive rolling: menu toggle, bouncing dice stay on screen, shake and flick start a roll, classic unchanged.
+// 14. Immersive rolling: menu toggle, tap picks the dice up, tap/flick/shake throws, 3D dice settle on the rolled faces.
 {
   const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 }, hasTouch: true });
   await page.goto(url);
@@ -484,44 +484,73 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('#menu-btn'); await page.click('#modal [data-ui=rollstyle][data-v=immersive]');
   if ((await st()) !== 'immersive') problems.push('immersive: menu toggle did not save');
   await page.click('#modal-x');
-  // sample the bouncing dice while a roll plays
-  const watch = async () => {
-    await page.evaluate(() => { window.__seen = { n: 0, out: 0 }; const tick = () => { document.querySelectorAll('#throw .tdie').forEach(d => { const r = d.getBoundingClientRect(); window.__seen.n++; if (r.left < -4 || r.top < -4 || r.right > innerWidth + 4 || r.bottom > innerHeight + 4) window.__seen.out++; }); requestAnimationFrame(tick); }; tick(); });
-  };
-  await watch();
-  await page.evaluate(() => { __mono.ui.state.debugDice = [[2, 5], [3, 3]]; });
+  const idle = () => page.waitForFunction(() => !__mono.ui.animating && !document.querySelector('#throw'), null, { timeout: 15000 });
+  const fresh1 = () => page.evaluate(() => { const s = __mono.ui.state; s.pending = null; s.phase = 'start'; s.dice = null; s.doubles = 0; s.cur = 0; s.players[0].inJail = false; s.fx = []; render(); syncModal(); });
+  const faces = () => page.evaluate(() => [...document.querySelectorAll('#dice .die')].map(d => d.getAttribute('aria-label')).join('|'));
+  // 1. Tapping Roll dice picks the dice up and does not roll yet
+  await page.evaluate(() => { __mono.ui.state.debugDice = [[2, 5]]; });
   await page.locator('#center .acts .btn.primary').click();
-  await page.waitForSelector('#throw .tdie');
-  await page.waitForSelector('#throw', { state: 'detached', timeout: 8000 }).catch(() => problems.push('immersive: dice layer never finished'));
+  await page.waitForSelector('#throw.armed .tdie .cube .face').catch(() => problems.push('immersive: tapping Roll dice did not pick up the dice'));
+  if ((await page.locator('#throw .tdie').count()) !== 2) problems.push('immersive: expected two dice');
+  if ((await page.locator('#throw .tdie').first().locator('.face').count()) !== 6) problems.push('immersive: dice are not 3D cubes with six faces');
+  await page.waitForTimeout(500);
+  if (await page.evaluate(() => __mono.ui.state.dice)) problems.push('immersive: the roll happened before the throw');
+  // Put them down cancels
+  await page.click('#throw .throw-cancel');
+  await page.waitForSelector('#throw', { state: 'detached', timeout: 3000 }).catch(() => problems.push('immersive: Put them down did not cancel'));
+  if (await page.evaluate(() => __mono.ui.state.dice)) problems.push('immersive: cancelling still rolled');
+  // 2. Pick up, then tap to throw; watch every frame stays on screen; faces land as rolled
+  await page.evaluate(() => { window.__seen = { n: 0, out: 0 }; const tick = () => { document.querySelectorAll('#throw .tdie').forEach(d => { const r = d.getBoundingClientRect(); window.__seen.n++; if (r.left < -4 || r.top < -4 || r.right > innerWidth + 4 || r.bottom > innerHeight + 4) window.__seen.out++; }); requestAnimationFrame(tick); }; tick(); });
+  await page.locator('#center .acts .btn.primary').click();
+  await page.waitForSelector('#throw.armed');
+  await page.mouse.click(195, 500);
+  await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: tapping did not throw'));
+  const landed = await page.waitForSelector('#throw[data-faces]', { timeout: 8000 }).then(() => page.evaluate(() => {
+    // the face pointing at the viewer is the one whose normal has the largest z after the cube's rotation
+    return [...document.querySelectorAll('#throw .tdie')].map(d => { const cube = d.querySelector('.cube'); let best = null, bz = -2;
+      d.querySelectorAll('.face').forEach((f, k) => { const m = new DOMMatrix(getComputedStyle(cube).transform).multiply(new DOMMatrix(getComputedStyle(f).transform)); const z = m.m33; if (z > bz) { bz = z; best = f.querySelectorAll('i').length; } }); return best; }).join(',');
+  })).catch(() => null);
+  if (landed !== '2,5') problems.push('immersive: 3D dice settled on ' + landed + ' instead of 2,5');
+  await idle().catch(() => problems.push('immersive: dice layer never finished'));
   const seen = await page.evaluate(() => window.__seen);
   if (!(seen.n > 20)) problems.push('immersive: too few frames seen ' + seen.n);
   if (seen.out) problems.push('immersive: dice left the screen in ' + seen.out + ' frames');
-  const faces = await page.evaluate(() => [...document.querySelectorAll('#dice .die')].map(d => d.getAttribute('aria-label')));
-  if (faces.join('|') !== 'Die showing 2|Die showing 5') problems.push('immersive: landed faces differ from the roll: ' + faces.join('|'));
-  await page.waitForTimeout(600);
-  // give the next roll to a person, then shake (devicemotion) to roll
-  const fresh1 = () => page.evaluate(() => { const s = __mono.ui.state; s.pending = null; s.phase = 'start'; s.dice = null; s.doubles = 0; s.cur = 1; s.fx = []; render(); syncModal(); });
-  await page.waitForFunction(() => !__mono.ui.animating, null, { timeout: 15000 }); await fresh1();
-  const shake = () => page.evaluate(async () => { for (const z of [9.8, 40, 9.8, 40, 9.8, 40, 9.8]) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { accelerationIncludingGravity: { x: 0, y: 0, z } })); await new Promise(r => setTimeout(r, 40)); } });
-  const hasRoll = () => page.locator('#center [data-a*=ROLL]').count();
-  if (await hasRoll()) {
-    await page.evaluate(() => { __mono.ui.state.debugDice = [[4, 6]]; });
-    await shake();
-    await page.waitForSelector('#throw', { timeout: 3000 }).catch(() => problems.push('immersive: shaking did not start a roll'));
-    await page.waitForSelector('#throw', { state: 'detached', timeout: 8000 }).catch(() => {});
-    await page.waitForTimeout(600);
-  } else problems.push('immersive: no roll button to test shaking');
-  // flick the center panel
-  await page.waitForFunction(() => !__mono.ui.animating, null, { timeout: 15000 }); await fresh1(); await page.waitForTimeout(300);
-  if (await hasRoll()) {
-    await page.evaluate(() => { __mono.ui.state.debugDice = [[1, 3]]; });
-    await page.evaluate(() => { const c = document.querySelector('#center'); const mk = (type, x, y) => { const t = new Touch({ identifier: 2, target: c, clientX: x, clientY: y }); c.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true })); }; mk('touchstart', 200, 500); setTimeout(() => mk('touchend', 230, 300), 80); });
-    await page.waitForSelector('#throw', { timeout: 3000 }).catch(() => problems.push('immersive: flicking did not start a roll'));
-    await page.waitForSelector('#throw', { state: 'detached', timeout: 8000 }).catch(() => {});
-  } else problems.push('immersive: no roll button to test flicking');
-  // classic again: no overlay
-  await page.waitForTimeout(800);
+  if ((await faces()) !== 'Die showing 2|Die showing 5') problems.push('immersive: center dice differ from the roll: ' + await faces());
+  // 3. Flick throws (mouse drag)
+  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[1, 3]]; });
+  await page.locator('#center .acts .btn.primary').click(); await page.waitForSelector('#throw.armed');
+  await page.mouse.move(200, 650); await page.mouse.down(); await page.mouse.move(210, 500, { steps: 2 }); await page.mouse.move(220, 300, { steps: 2 }); await page.mouse.up();
+  await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: flicking did not throw'));
+  await idle().catch(() => {});
+  if ((await faces()) !== 'Die showing 1|Die showing 3') problems.push('immersive: flick roll faces wrong: ' + await faces());
+  // 4. Shake: realistic samples (linear acceleration in m/s²), with and without picking up first
+  const shake = () => page.evaluate(async () => { for (const m of [2, 18, 3, 1, 20, 2, 1]) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: m, y: 0, z: 0 }, accelerationIncludingGravity: { x: m, y: 0, z: 9.8 } })); await new Promise(r => setTimeout(r, 60)); } });
+  const gentle = () => page.evaluate(async () => { for (let k = 0; k < 12; k++) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: 4, y: 3, z: 0 }, accelerationIncludingGravity: { x: 4, y: 3, z: 9.8 } })); await new Promise(r => setTimeout(r, 60)); } });
+  await page.evaluate(() => startMotionWatch());
+  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[4, 6]]; });
+  await gentle(); await page.waitForTimeout(300);
+  if (await page.locator('#throw').count()) problems.push('immersive: a gentle movement (passing the phone) started a roll');
+  await shake();
+  await page.waitForSelector('#throw', { timeout: 3000 }).catch(() => problems.push('immersive: shaking did not roll'));
+  await idle().catch(() => {});
+  if ((await faces()) !== 'Die showing 4|Die showing 6') problems.push('immersive: shake roll faces wrong: ' + await faces());
+  await page.waitForTimeout(2600); // shake cooldown
+  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[3, 3], [1, 2]]; });
+  await page.locator('#center .acts .btn.primary').click(); await page.waitForSelector('#throw.armed');
+  await shake();
+  await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: shaking did not throw held dice'));
+  await idle().catch(() => {});
+  // 5. Keyboard: R picks up, Space throws
+  await page.evaluate(() => { const s = __mono.ui.state; s.pending = null; render(); syncModal(); });
+  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[6, 1]]; });
+  await page.keyboard.press('r'); await page.waitForSelector('#throw.armed', { timeout: 2000 }).catch(() => problems.push('immersive: R did not pick up the dice'));
+  await page.keyboard.press('Space');
+  await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: Space did not throw'));
+  await idle().catch(() => {});
+  // 6. Classic again: Roll dice rolls straight away, no full-screen layer
   await page.evaluate(() => { localStorage.setItem('mono.rollStyle', 'classic'); __mono.ui.rollStyle = 'classic'; });
+  await fresh1(); await page.locator('#center .acts .btn.primary').click(); await page.waitForTimeout(200);
+  if (await page.locator('#throw').count()) problems.push('classic: a full-screen layer appeared');
   console.log('Immersive roll test done');
   await ctx.close();
 }
