@@ -23,7 +23,7 @@ jobs:
           node-version: 22
       - name: Install test runner
         run: npm install --no-save playwright-core
-      - name: Run rule tests in headless Chrome
+      - name: Run rule, interface and app tests in headless Chrome
         run: node tests/run-tests.mjs
         env:
           CHROME_PATH: /usr/bin/google-chrome
@@ -44,7 +44,7 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html site/
+          cp -r index.html manifest.webmanifest sw.js icons site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
