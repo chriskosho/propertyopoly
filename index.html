@@ -294,7 +294,6 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .tshadow{position:absolute;left:10%;top:10%;width:80%;height:80%;border-radius:20%;background:#000;filter:blur(9px)}
 .throw-tip{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);top:calc(64px + env(safe-area-inset-top));margin:0;padding:8px 14px;border-radius:999px;background:#13243D;text-align:center;color:#fff;font-weight:600;font-size:1rem;pointer-events:none}
 .throw-cancel,#throw .throw-cancel{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;background:#fff;color:#13243D;border-color:#fff}
-.sens{display:flex;align-items:center;gap:10px;margin-top:8px;font-weight:600}.sens input{flex:1;accent-color:#0F7A5C}.sens output{min-width:1.5em;text-align:right}.sens-ends{display:flex;justify-content:space-between;margin:2px 0 0;font-size:.8rem}
 .deed-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 6px}.deed-nav span{min-width:5.5em;text-align:center;color:var(--muted)}.deed-tip{text-align:center;margin:0 0 8px;font-size:.8rem}
 .deed{background:var(--card);color:var(--card-ink);border:1.5px solid var(--card-ink);width:min(270px,100%);margin:4px auto 12px;font-family:var(--cond);font-stretch:condensed;padding:8px}
 .deed .hd{background:var(--g,#fff);border:1.5px solid var(--card-ink);padding:9px 8px;text-align:center;color:var(--gt,#13243D)}
@@ -479,7 +478,14 @@ body.tv dialog .btn.small{font-size:1.02rem}
   background:var(--red);color:var(--red-ink);padding:.18em .32em;border-radius:2px;box-shadow:0 0 0 1.5px var(--sheet)}
 .owe.soft{background:var(--sheet);color:var(--red);box-shadow:0 0 0 1.5px var(--red)}
 .risk{font-size:max(11px,1.6cqi);color:var(--muted);margin:0;max-width:46ch;background:var(--sheet);padding:0 1cqi}
-.pot-tag{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);font-weight:700;font-size:max(8px,1.6cqi);color:var(--red);white-space:nowrap}
+.pot-tag{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);font-weight:700;font-size:max(8px,1.6cqi);color:var(--red);white-space:nowrap;background:#fff;padding:0 2px;z-index:3}
+.space.t-parking .in.has-bag .gl{visibility:hidden}
+.bag{position:absolute;left:50%;bottom:24%;width:35%;--bs:.45;transform:translate(-50%,0) scale(var(--bs));transform-origin:50% 100%;transition:transform .45s cubic-bezier(.3,1.5,.5,1);pointer-events:none;z-index:2}
+.bag svg{display:block;width:100%;height:auto;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.bill{position:absolute;left:0;top:0;z-index:8;pointer-events:none;box-sizing:border-box;background:var(--bc);border:1.5px solid #3D4A3D;border-radius:2px;box-shadow:inset 0 0 0 2px var(--bc),inset 0 0 0 3px rgba(40,60,40,.45),0 2px 4px rgba(0,0,0,.3);font-family:var(--cond);font-stretch:condensed;font-weight:700;color:#24331F;will-change:transform}
+.bill .bc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1.9em;height:1.9em;border-radius:50%;border:1px solid rgba(40,60,40,.55);display:grid;place-items:center;background:rgba(255,255,255,.45)}
+.bill .bv{position:absolute;font-size:.75em;line-height:1}
+.bill .tl{left:4px;top:3px}.bill .br{right:4px;bottom:3px}
 /* private screens: hand the device over without showing the board */
 dialog.private::backdrop{background:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:20px 20px}
 dialog.wide{width:min(760px,calc(100vw - 20px))}
@@ -854,7 +860,8 @@ function rentFor(s, i, opts={}){
 
 /* ---------- money ---------- */
 /* Visual-only events: the UI animates cash moving between players and the bank. */
-function cashFx(s, from, to, amount){ if(amount>0) s.fx.push({type:'money', from, to, amount}); }
+/* pot: the bank side of this payment is the Free Parking pot, so the money flies to or from that corner. */
+function cashFx(s, from, to, amount, pot){ if(amount>0) s.fx.push(pot ? {type:'money', from, to, amount, pot:true} : {type:'money', from, to, amount}); }
 function credit(s, pi, amount, reason){
   s.players[pi].cash += amount; cashFx(s, null, pi, amount);
   log(s, `${nm(s,pi)} collected ${money(amount)} for ${reason}.`, 'money');
@@ -877,7 +884,7 @@ function charge(s, from, amount, to, reason, opts={}){
     p.cash -= amount;
     if(to!=null) s.players[to].cash += amount;
     if(pot) s.pot += amount;
-    cashFx(s, from, to, amount);
+    cashFx(s, from, to, amount, pot);
     log(s, `${p.name} paid ${money(amount)} to ${to!=null?nm(s,to):pot?'the Free Parking pot':'the bank'} for ${reason}.`, 'money');
     s.fx.push({type:'sound', name:'pay'});
   } else {
@@ -947,7 +954,7 @@ function land(s, pi, opts={}){
     case 'chance': case 'chest': drawCard(s, pi, sp.type); break;
     case 'jail': log(s, `${p.name} is just visiting the jail.`); break;
     case 'parking':
-      if(s.rules.parking && s.pot>0){ const amt = s.pot; s.pot = 0; credit(s, pi, amt, 'the Free Parking pot'); }
+      if(s.rules.parking && s.pot>0){ const amt = s.pot; s.pot = 0; s.players[pi].cash += amt; cashFx(s, null, pi, amt, true); log(s, `${nm(s,pi)} collected ${money(amt)} from the Free Parking pot.`, 'money'); }
       else log(s, `${p.name} landed on Free Parking. Nothing happens.`);
       break;
   }
@@ -1112,7 +1119,7 @@ const HANDLERS = {
     const p = s.players[s.cur];
     need(!busy(s) && s.phase==='start' && p.inJail, 'You can only pay the fine before rolling while in jail.');
     need(p.cash>=JAIL_FINE, `You need ${money(JAIL_FINE)} to pay the fine.`);
-    p.cash -= JAIL_FINE; p.inJail = false; p.jailTurns = 0; cashFx(s, s.cur, null, JAIL_FINE); if(s.rules.parking) s.pot += JAIL_FINE;
+    p.cash -= JAIL_FINE; p.inJail = false; p.jailTurns = 0; cashFx(s, s.cur, null, JAIL_FINE, s.rules.parking); if(s.rules.parking) s.pot += JAIL_FINE;
     log(s, `${p.name} paid the ${money(JAIL_FINE)} fine and left jail.`, 'money'); s.fx.push({type:'sound', name:'pay'});
   },
   JAIL_CARD(s){
@@ -1319,7 +1326,7 @@ const HANDLERS = {
     const d = s.debts[0], p = s.players[d.debtor];
     need(p.cash>=d.amount, `${p.name} needs ${money(d.amount - p.cash)} more.`);
     p.cash -= d.amount; if(d.creditor!=null) s.players[d.creditor].cash += d.amount; else if(d.pot) s.pot += d.amount;
-    cashFx(s, d.debtor, d.creditor, d.amount);
+    cashFx(s, d.debtor, d.creditor, d.amount, d.creditor==null && d.pot);
     s.debts.shift();
     log(s, `${p.name} paid ${money(d.amount)} to ${d.creditor!=null?nm(s,d.creditor):'the bank'} for ${d.reason}.`, 'money');
     s.fx.push({type:'sound', name:'pay'});
@@ -1513,8 +1520,13 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.10.0';
+const APP_VERSION = '2.11.0';
 const RELEASES = [
+  {version:'2.11.0', date:'2026-11-26', title:'Build and Mortgage, money bag and play money', changes:[
+    'Build and mortgage is now two buttons, Build and Mortgage, each with its own screen. The keyboard shortcuts are B and M.',
+    'With the Free Parking jackpot rule on, a money bag sits on Free Parking and grows as the pot fills.',
+    'When money changes hands, colored play-money bills fly between players, the bank and the pot.',
+    'Shake to roll has been removed. With Immersive rolling, tap Roll dice, then flick or tap to throw.']},
   {version:'2.10.0', date:'2026-11-26', title:'Shake sensitivity and a natural tumble', changes:[
     'New Shake sensitivity slider in the Game menu (with Immersive on). The middle setting needs about half the force it did before.',
     'The 3D dice now spin toward the rolled numbers from the moment they leave your hand and slow into them, with no last-second turn.']},
@@ -1598,8 +1610,7 @@ const ui = {state:null, history:[], modalKey:null, userModal:null, animating:fal
   overDismissed:false, tradeDraft:null, tradeOpen:new Set(), tradeGate:null, muted:LS.get(KEY_MUTE)==='1', showLog:LS.get(KEY_LOG)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
   motion:LS.get(KEY_MOTION)==='off' ? 'off' : 'on',
   theme:LS.get(KEY_THEME)==='dark' ? 'dark' : 'light',
-  rollStyle:LS.get(KEY_ROLL)==='immersive' ? 'immersive' : 'classic', throwVel:null, motionOk:null, motionInfo:{events:0, peak:0, last:0},
-  shakeSens:Math.min(10, Math.max(1, +(LS.get('mono.shakeSens')||5))),
+  rollStyle:LS.get(KEY_ROLL)==='immersive' ? 'immersive' : 'classic', throwVel:null,
   hl:null, botTimer:null, spin:null, auctionKey:null, auctionEnds:0, installEvt:null};
 /* Animations are on by default; the Game menu can turn them off. An old saved 'auto' counts as on. */
 const reducedMotion = () => ui.motion==='off';
@@ -1684,7 +1695,7 @@ function announceTurn(s){
   const parts = [];
   if(humans(s).length>1) parts.push(`${p.name}’s turn.`);
   const m = mortgagedOf(s, s.cur);
-  if(m.length) parts.push(`You have ${m.length} mortgaged ${m.length===1?'property':'properties'}. Unmortgage ${m.length===1?'it':'them'} under Build and mortgage.`);
+  if(m.length) parts.push(`You have ${m.length} mortgaged ${m.length===1?'property':'properties'}. Unmortgage ${m.length===1?'it':'them'} under Mortgage.`);
   if(parts.length) toast(parts.join(' '), m.length ? 6000 : 3000);
 }
 async function dispatch(action, opts={}){
@@ -1802,7 +1813,7 @@ async function animateDice(f, fast){
   if(f.dice[0]===f.dice[1] && !f.util) await doublesFlourish();
   else await sleep(100);
 }
-/* Immersive roll. Tapping Roll dice picks up two 3D dice; a shake, flick or tap throws them across the
+/* Immersive roll. Tapping Roll dice picks up two 3D dice; a flick or tap throws them across the
    whole screen, where they bounce off the edges. The faces were already chosen by the game: the
    tumble is only for show and always settles on the rolled numbers. */
 const immersiveOn = () => ui.rollStyle==='immersive' && !reducedMotion();
@@ -1831,11 +1842,10 @@ function newThrowLayer(){
 }
 /* Pick up the dice. They hover, follow a finger or the mouse, and wait to be thrown. */
 function armRoll(action){
-  askMotionPermission();
   const size = dieSize(), vw = innerWidth, vh = innerHeight, layer = newThrowLayer();
   layer.classList.add('armed'); layer.setAttribute('role','dialog'); layer.setAttribute('aria-label','Throw the dice');
   const touch = matchMedia('(pointer:coarse)').matches;
-  layer.innerHTML = `<p class="throw-tip">${touch ? 'Shake, flick or tap to throw the dice.' : 'Flick or click to throw the dice. Space throws too.'}</p><button class="btn small throw-cancel" type="button">Put them down</button>`;
+  layer.innerHTML = `<p class="throw-tip">${touch ? 'Flick or tap to throw the dice.' : 'Flick or click to throw the dice. Space throws too.'}</p><button class="btn small throw-cancel" type="button">Put them down</button>`;
   const H = ui.held = {layer, size, action, thrown:false, grab:null,
     ds:[0,1].map(k=>newDie(layer, size, vw/2+(k?0.65:-0.65)*size, vh*0.5))};
   H.ds.forEach(d=>placeDie(d, size));
@@ -1869,8 +1879,7 @@ function armRoll(action){
     throwHeld(dist>30 && speed>400 ? {vx:dx/dist, vy:dy/dist, speed:speed*1.1} : null);
   });
   $('.throw-cancel', layer).addEventListener('click', e=>{ e.stopPropagation(); cancelHeld(); });
-  if(touch){ const n0 = ui.motionInfo.events; setTimeout(()=>{ if(ui.held!==H || H.thrown) return;
-    if(ui.motionInfo.events===n0){ const tip = $('.throw-tip', layer); if(tip) tip.textContent = ui.motionOk===false ? 'Motion access is off. Flick or tap to throw.' : 'No motion readings from this device. Flick or tap to throw.'; } }, 1500); }
+
 }
 function throwHeld(vel){
   const H = ui.held; if(!H || H.thrown) return;
@@ -1948,69 +1957,6 @@ function throwDiceImmersive(f, show){
     requestAnimationFrame(step);
   });
 }
-/* Shake to roll (Immersive style, phones and tablets). A shake throws dice that are held, or
-   rolls straight away when Roll dice is showing. Tapping Roll dice always works. */
-function rollButton(){
-  const s = ui.state; if(!s || $('#game').hidden || $('#modal').open || $('#confirm').open || $('#whatsnew').open || ui.animating || ui.spin || s.phase==='over') return null;
-  if(s.players[s.cur].bot) return null;
-  const b = $(`#center [data-a*='"ROLL"'], #center [data-a*='"JAIL_ROLL"']`);
-  return b && !b.disabled ? b : null;
-}
-function shakeRoll(){
-  if(ui.held && !ui.held.thrown){ throwHeld(null); return true; }
-  const b = rollButton(); if(!b) return false;
-  ui.throwVel = null; dispatch(JSON.parse(b.dataset.a)); return true;
-}
-/* Force a shake jolt needs, in m/s². Sensitivity 5 (the default) needs half what 2.9.0 did. */
-const shakeNeeds = held => (held ? 20 : 30) / ui.shakeSens;
-function startMotionWatch(){
-  if(ui.motionWatch || typeof DeviceMotionEvent==='undefined') return; ui.motionWatch = true;
-  let peaks = [], coolUntil = 0;
-  addEventListener('devicemotion', e=>{
-    // Force of the jolt in m/s². Some phones report the gravity-free reading as always zero,
-    // so take the stronger of that and the with-gravity reading minus gravity.
-    const a = e.acceleration, g = e.accelerationIncludingGravity;
-    const lin = a && a.x!=null ? Math.hypot(a.x, a.y||0, a.z||0) : 0;
-    const grav = g && g.x!=null ? Math.abs(Math.hypot(g.x, g.y||0, g.z||0) - 9.81) : 0;
-    const m = Math.max(lin, grav), MI = ui.motionInfo;
-    MI.events++; MI.last = m; MI.peak = Math.max(MI.peak*0.995, m);
-    if(!immersiveOn()) return;
-    const now = performance.now(); if(now<coolUntil) return;
-    if(m < shakeNeeds(ui.held && !ui.held.thrown)) return;
-    if(peaks.length && now-peaks[peaks.length-1]<90) return;
-    peaks.push(now); peaks = peaks.filter(x=>now-x<900);
-    if(peaks.length>=2){ peaks = []; if(shakeRoll()) coolUntil = now+2500; }
-  });
-}
-/* A plain-language report of what the motion sensor is doing, shown live in the Game menu. */
-function motionStatus(){
-  const MI = ui.motionInfo, needsAsk = typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function';
-  if(typeof DeviceMotionEvent==='undefined') return {text:'This browser doesn’t report motion, so shaking can’t work here. Flick or tap to throw.'};
-  if(ui.motionOk===false) return {text:'Motion access was declined. On iPhone or iPad, fully close the app or Safari, open it again, then tap Allow motion access.', ask:needsAsk};
-  if(needsAsk && ui.motionOk!==true) return {text:'Shaking needs motion access.', ask:true};
-  if(!ui.motionWatch) startMotionWatch();
-  if(!MI.events) return {text:'Motion access is on, but no readings have arrived yet. Shake the device now. If this doesn’t change, this device isn’t sending motion data.'};
-  return {text:`Motion readings are arriving (${MI.events}). Shake now: strongest jolt ${MI.peak.toFixed(1)} m/s². A roll needs two jolts over ${shakeNeeds(false).toFixed(1)}, or over ${shakeNeeds(true).toFixed(1)} while you’re holding the dice.`};
-}
-function motionStatusHTML(){
-  const st = motionStatus();
-  return `<span id="motion-text">${esc(st.text)}</span>${st.ask?' <button class="btn small" data-ui="motionAllow">Allow motion access</button>':''}`;
-}
-setInterval(()=>{ const el = document.getElementById('motion-text'); if(!el || !$('#modal').open) return;
-  const st = motionStatus(); if(el.textContent!==st.text) el.textContent = st.text; }, 300);
-function askMotionPermission(){
-  if(typeof DeviceMotionEvent==='undefined') return Promise.resolve('none');
-  if(typeof DeviceMotionEvent.requestPermission==='function'){
-    if(ui.motionOk===true){ startMotionWatch(); return Promise.resolve('ok'); }
-    // Must be called straight from a tap, so no await before it.
-    return DeviceMotionEvent.requestPermission().then(r=>{ ui.motionOk = r==='granted'; if(ui.motionOk) startMotionWatch(); return ui.motionOk ? 'ok' : 'denied'; }).catch(()=>{ ui.motionOk = false; return 'denied'; });
-  }
-  ui.motionOk = true; startMotionWatch(); return Promise.resolve('ok');
-}
-if(ui.rollStyle==='immersive' && typeof DeviceMotionEvent!=='undefined'){
-  if(typeof DeviceMotionEvent.requestPermission!=='function') startMotionWatch();
-  else document.addEventListener('click', ()=>{ if(ui.rollStyle==='immersive' && ui.motionOk==null) askMotionPermission(); }, {once:true, capture:true});
-}
 async function doublesFlourish(){
   const box = $('#dice'); if(!box) return;
   sfx.play('doubles');
@@ -2081,29 +2027,49 @@ async function animateMove(f, fast){
   drawRing(f.to, true);
 }
 /* A cash note flies from payer to payee. The bank lives in the middle of the board. */
-function pointFor(pi){
+function pointFor(pi, pot){
   const board = $('#board'), br = board.getBoundingClientRect();
-  const el = pi==null || ui.state.players[pi]?.bankrupt ? $('#dice') || $('#center') : $(`.tok[data-p="${pi}"]`, board);
+  const el = pi==null ? (pot ? $('.space.t-parking .bag', board) || $('.space.t-parking', board) : $('#dice') || $('#center'))
+    : ui.state.players[pi]?.bankrupt ? $('#center') : $(`.tok[data-p="${pi}"]`, board);
   const r = el.getBoundingClientRect();
   return {x:r.left - br.left + r.width/2, y:r.top - br.top + r.height/2};
 }
+/* Play-money bills, one color per value, like the classic board game's. */
+const BILLS = [[500,'#F3A35B'],[100,'#E8D39B'],[50,'#8EC2EA'],[20,'#9AD39A'],[10,'#F5E07A'],[5,'#F3B3C4'],[1,'#FFFFFF']];
+function billsFor(amount){
+  const out = []; let left = amount;
+  for(const [v,c] of BILLS){ while(left>=v && out.length<8){ out.push([v,c]); left -= v; } }
+  return out.length ? out : [[1,'#FFFFFF']];
+}
 function flyMoney(f){
   const board = $('#board'); if(!board.animate) return Promise.resolve();
-  const a = pointFor(f.from), b = pointFor(f.to);
-  const chip = document.createElement('div');
-  chip.className = 'cash-chip' + (f.to==null ? ' bank' : '');
-  chip.textContent = money(f.amount);
-  board.appendChild(chip);
-  const w = chip.offsetWidth, h = chip.offsetHeight, lift = Math.max(30, Math.hypot(b.x-a.x, b.y-a.y)*0.28);
-  const at = (x,y,sc) => `translate(${x-w/2}px,${y-h/2}px) scale(${sc})`;
-  const anim = chip.animate([
-    {transform:at(a.x,a.y,.5), opacity:0},
-    {transform:at(a.x,a.y-12,1), opacity:1, offset:.15},
-    {transform:at((a.x+b.x)/2,(a.y+b.y)/2-lift,1.05), opacity:1, offset:.55},
-    {transform:at(b.x,b.y,.85), opacity:1, offset:.9},
-    {transform:at(b.x,b.y,.6), opacity:0},
-  ], {duration:950, easing:'cubic-bezier(.35,.2,.3,1)'});
-  return anim.finished.catch(()=>{}).then(()=>chip.remove());
+  const a = pointFor(f.from, f.pot), b = pointFor(f.to, f.pot);
+  const W = board.clientWidth, bw = Math.max(34, W*0.1), bh = bw*0.5;
+  const lift = Math.max(30, Math.hypot(b.x-a.x, b.y-a.y)*0.28);
+  const bills = billsFor(f.amount);
+  const runs = bills.map(([v,c],k)=>{
+    const el = document.createElement('div'); el.className = 'bill';
+    el.style.cssText = `--bc:${c};width:${bw}px;height:${bh}px;font-size:${bh*0.34}px`;
+    el.innerHTML = `<span class="bv tl">${v}</span><span class="bc">${v}</span><span class="bv br">${v}</span>`;
+    board.appendChild(el);
+    const jx = (Math.random()-.5)*bw*0.4, jy = (Math.random()-.5)*bh*0.6, r0 = (Math.random()-.5)*30, r1 = (Math.random()-.5)*50;
+    const at = (x,y,rot,sc) => `translate(${x-bw/2+jx}px,${y-bh/2+jy}px) rotate(${rot}deg) scale(${sc})`;
+    return el.animate([
+      {transform:at(a.x,a.y,r0,.4), opacity:0},
+      {transform:at(a.x,a.y-10,r0,1), opacity:1, offset:.14},
+      {transform:at((a.x+b.x)/2,(a.y+b.y)/2-lift,(r0+r1)/2+(k%2?14:-14),1.05), opacity:1, offset:.55},
+      {transform:at(b.x,b.y,r1,.85), opacity:1, offset:.9},
+      {transform:at(b.x,b.y,r1,.55), opacity:0},
+    ], {duration:900, delay:k*75, easing:'cubic-bezier(.35,.2,.3,1)', fill:'backwards'}).finished.catch(()=>{}).then(()=>el.remove());
+  });
+  // The total pops up where the money lands.
+  const tag = document.createElement('div'); tag.className = 'cash-chip' + (f.to==null && !f.pot ? ' bank' : '');
+  tag.textContent = money(f.amount); board.appendChild(tag);
+  const tw = tag.offsetWidth, th = tag.offsetHeight, ta = (y,sc) => `translate(${b.x-tw/2}px,${y-th/2}px) scale(${sc})`;
+  const t1 = tag.animate([{transform:ta(b.y,.6), opacity:0},{transform:ta(b.y-14,1), opacity:1, offset:.25},{transform:ta(b.y-30,1), opacity:1, offset:.75},{transform:ta(b.y-40,.95), opacity:0}],
+    {duration:1000, delay:700+bills.length*75, fill:'backwards'}).finished.catch(()=>{}).then(()=>tag.remove());
+  if(f.pot && f.to==null) Promise.all(runs).then(()=>{ const bag = $('.space.t-parking .bag', board); bag?.animate?.([{transform:'translate(-50%,0) scale(var(--bs))'},{transform:'translate(-50%,0) scale(calc(var(--bs) * 1.15))'},{transform:'translate(-50%,0) scale(var(--bs))'}], {duration:360, easing:'ease-out'}); });
+  return Promise.all([...runs, t1]);
 }
 /* "Sold" is stamped onto a space when it changes hands from the bank. */
 function stampSold(i){
@@ -2129,6 +2095,7 @@ function stampSold(i){
    7. RENDERING
    ===================================================================== */
 const GLYPH = {
+  bag:'<svg viewBox="0 0 40 44" aria-hidden="true"><path d="M14 4h12l-3 6h-6z" fill="#B5832F" stroke="#13243D" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 10h8c9 4 14 13 14 21 0 8-7 11-18 11S2 39 2 31c0-8 5-17 14-21z" fill="#D9A646" stroke="#13243D" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 11c4 2 8 2 12 0" fill="none" stroke="#13243D" stroke-width="1.6"/><text x="20" y="33" text-anchor="middle" font-size="15" font-weight="700" font-family="Georgia,serif" fill="#13243D">$</text></svg>',
   rail:'<svg viewBox="0 0 40 40"><path d="M6 31h28M6 35h28"/><path d="M9 31V17h14v14M23 22h8l3 4v5"/><path d="M12 17v-5h6v5M27 22v-4"/><circle cx="13" cy="31" r="3"/><circle cx="27" cy="31" r="3"/></svg>',
   elec:'<svg viewBox="0 0 40 40"><path d="M23 4L10 22h9l-3 14 14-19h-9z"/></svg>',
   water:'<svg viewBox="0 0 40 40"><path d="M20 5c6 9 10 14 10 20a10 10 0 0 1-20 0c0-6 4-11 10-20z"/><path d="M15 26a5 5 0 0 0 5 5"/></svg>',
@@ -2269,8 +2236,14 @@ function renderBoardMarks(s){
     $(`.space[data-i="${r.i}"] .in`, board).appendChild(tag);
   }
   const park = $('.space.t-parking .in', board);
-  $('.pot-tag', park)?.remove();
-  if(s.rules.parking && s.pot>0) park.insertAdjacentHTML('beforeend', `<span class="pot-tag">${money(s.pot)}</span>`);
+  if(s.rules.parking){
+    // The bag grows with the pot: small when empty, full size at $1,500 or more.
+    const bs = (0.45 + 0.55*Math.min(1, s.pot/1500)).toFixed(3);
+    if(!$('.bag', park)) park.insertAdjacentHTML('beforeend', `<span class="bag" role="img">${GLYPH.bag}</span><span class="pot-tag"></span>`);
+    const bag = $('.bag', park); bag.style.setProperty('--bs', bs); bag.title = `Free Parking pot: ${money(s.pot)}`; bag.setAttribute('aria-label', `Free Parking pot holds ${money(s.pot)}`);
+    $('.pot-tag', park).textContent = money(s.pot);
+    park.classList.add('has-bag');
+  } else { $$('.pot-tag,.bag', park).forEach(e=>e.remove()); park.classList.remove('has-bag'); }
   for(const i of OWNABLE){
     const el = $(`#board .space[data-i="${i}"]`), pr = s.props[i], sp = BOARD[i];
     const owner = pr.owner!=null ? s.players[pr.owner] : null;
@@ -2321,7 +2294,7 @@ function renderCenter(s){
     acts = `<button class="btn primary endturn" ${act({type:'END_TURN'})} aria-keyshortcuts="Enter">End turn</button>`;
   }
   const mort = !p.bot && s.phase!=='over' && !p.bankrupt && !s.pending && !s.debts.length && (s.phase==='start' || s.phase==='end') ? mortgagedOf(s, s.cur) : [];
-  const mortNote = mort.length ? `<p class="mortnote">You have ${mort.length} mortgaged ${mort.length===1?'property':'properties'}. Unmortgaging ${mort.length===1?'it costs':'them costs'} ${money(mort.reduce((n,i)=>n+unmortgageCost(i),0))}. <button class="btn small ghost" data-ui="manage">Open Build and mortgage</button></p>` : '';
+  const mortNote = mort.length ? `<p class="mortnote">You have ${mort.length} mortgaged ${mort.length===1?'property':'properties'}. Unmortgaging ${mort.length===1?'it costs':'them costs'} ${money(mort.reduce((n,i)=>n+unmortgageCost(i),0))}. <button class="btn small ghost" data-ui="mortgage">Open Mortgage</button></p>` : '';
   const d = s.dice || [1,1];
   $('#center').innerHTML = `
     <div class="masthead"><span class="mark">Propertyopoly</span><span class="ed">Hot-seat edition</span></div>
@@ -2330,7 +2303,7 @@ function renderCenter(s){
       <p class="status">${esc(status)}</p>${risk?`<p class="risk">${esc(risk)}</p>`:''}${mortNote}
       <div class="dice" id="dice"><span class="die" aria-label="Die showing ${d[0]}">${pips(d[0])}</span><span class="die" aria-label="Die showing ${d[1]}">${pips(d[1])}</span></div>
       <div class="acts">${acts}</div>
-      ${s.phase!=='over'?`<div class="acts acts2"><button class="btn small" data-ui="manage" ${manage?'':'disabled'}>Build and mortgage</button><button class="btn small" data-ui="trade" ${manage && alive(s).length>1?'':'disabled'}>Propose a trade</button></div>`:''}
+      ${s.phase!=='over'?`<div class="acts acts2"><button class="btn small" data-ui="build" ${manage?'':'disabled'}>Build</button><button class="btn small" data-ui="mortgage" ${manage?'':'disabled'}>Mortgage</button><button class="btn small" data-ui="trade" ${manage && alive(s).length>1?'':'disabled'}>Propose a trade</button></div>`:''}
     </div>
     <table class="titleblock"><tbody>
       <tr><td>${s.rules.roundLimit?'Round':'Turn'}</td><td>${s.rules.roundLimit?`${Math.min(s.round,s.rules.roundLimit)} of ${s.rules.roundLimit}`:s.turnNo}</td></tr>
@@ -2511,8 +2484,8 @@ function deedHTML(i){
   return `<div class="deed">${head}<table><tbody>${rows}</tbody></table><p class="note">${st.join(', ')}</p></div>`;
 }
 function managerHTML(s, pi, mode){
-  const order = [...Object.values(GROUPS).flat(), ...RAILS, ...UTILS].filter(i=>s.props[i].owner===pi);
-  if(!order.length) return `<p class="hint">${esc(nm(s,pi))} doesn’t own any property yet.</p>`;
+  const order = [...Object.values(GROUPS).flat(), ...(mode==='build' ? [] : [...RAILS, ...UTILS])].filter(i=>s.props[i].owner===pi);
+  if(!order.length) return `<p class="hint">${mode==='build' ? `${esc(nm(s,pi))} doesn’t own any color properties yet. Railroads and utilities can’t have buildings.` : `${esc(nm(s,pi))} doesn’t own any property yet.`}</p>`;
   const p = s.players[pi];
   return `<div class="mgr">${order.map(i=>{
     const sp = BOARD[i], pr = s.props[i];
@@ -2522,22 +2495,23 @@ function managerHTML(s, pi, mode){
     if(pr.mortgaged) stat.push('Mortgaged');
     if(sp.type==='prop' && !pr.houses && ownsGroup(s,pi,sp.group) && !pr.mortgaged) stat.push('Full set');
     const b = [];
-    if(sp.type==='prop' && mode==='full' && pr.houses<5){
+    if(sp.type==='prop' && (mode==='full' || mode==='build') && pr.houses<5){
       const kind = pr.houses===4 ? 'hotel' : 'house';
       let why = buildBlocker(s, pi, i);
       if(!why && (kind==='house' ? s.bank.houses : s.bank.hotels)===0) why = `The bank has no ${kind}s left.`;
       if(!why && p.cash<sp.house) why = `You need ${money(sp.house)}.`;
       b.push(`<button class="btn small" data-fid="b${i}" ${act({type:'BUILD',space:i})} ${why?`disabled title="${esc(why)}"`:''}>Add ${kind}, ${money(sp.house)}</button>`);
     }
-    if(sp.type==='prop' && pr.houses>0){
+    if(sp.type==='prop' && pr.houses>0 && mode!=='mortgage'){
       const max = Math.max(...GROUPS[sp.group].map(j=>s.props[j].houses));
       const why = pr.houses!==max ? 'Sell evenly: sell from the other properties in this group first.' : '';
       b.push(`<button class="btn small" data-fid="s${i}" ${act({type:'SELL',space:i})} ${why?`disabled title="${esc(why)}"`:''}>Sell ${pr.houses===5?'hotel':'house'}, +${money(sp.house/2)}</button>`);
     }
-    if(!pr.mortgaged){
-      const why = sp.type==='prop' && groupHasBuildings(s, sp.group) ? 'Sell every building in this color group first.' : '';
+    if(mode==='build'){}
+    else if(!pr.mortgaged){
+      const why = sp.type==='prop' && groupHasBuildings(s, sp.group) ? 'Sell every building in this color group first (under Build).' : '';
       b.push(`<button class="btn small" data-fid="m${i}" ${act({type:'MORTGAGE',space:i})} ${why?`disabled title="${esc(why)}"`:''}>Mortgage, +${money(sp.mort)}</button>`);
-    } else if(mode==='full'){
+    } else if(mode==='full' || mode==='mortgage'){
       const c = unmortgageCost(i);
       b.push(`<button class="btn small" data-fid="u${i}" ${act({type:'UNMORTGAGE',space:i})} ${p.cash<c?`disabled title="You need ${money(c)}."`:''}>Unmortgage, ${money(c)}</button>`);
     }
@@ -2674,11 +2648,16 @@ function modalHTML(key){
     const nav = at>=0 && L.length>1 ? `<div class="deed-nav"><button class="btn" data-ui="deedNav" data-d="-1" data-fid="dprev" aria-label="Previous card">‹ Previous</button><span aria-live="polite">${at+1} of ${L.length}</span><button class="btn" data-ui="deedNav" data-d="1" data-fid="dnext" aria-label="Next card">Next ›</button></div><p class="hint deed-tip">Swipe sideways or use the arrow keys to change cards.</p>` : '';
     return `<h2 id="modal-title" class="visually-hidden" style="position:absolute;left:-9999px">${esc(sp.name)}</h2>${deedHTML(i)}${nav}<div class="row-btns" style="justify-content:center"><button class="btn" data-ui="close" ${nav?'':'autofocus'}>Close</button></div>`;
   }
-  if(key==='manage'){
+  if(key==='build'){
     const p = s.players[s.cur];
-    return `<h2 id="modal-title">${esc(p.name)}’s property</h2><p>${playerLine(s,s.cur)}. Build evenly across a color set. Buildings must be sold before mortgaging anything in that set.</p>
+    return `<h2 id="modal-title">Build</h2><p>${playerLine(s,s.cur)}. Own every property in a color set to build there, and build evenly across the set.</p>
       <p class="hint">The bank has ${s.bank.houses} house${s.bank.houses===1?'':'s'} and ${s.bank.hotels} hotel${s.bank.hotels===1?'':'s'} left.</p>
-      ${managerHTML(s, s.cur, 'full')}<div class="row-btns"><button class="btn" data-ui="close" data-fid="close">Done</button></div>`;
+      ${managerHTML(s, s.cur, 'build')}<div class="row-btns"><button class="btn" data-ui="close" data-fid="close">Done</button></div>`;
+  }
+  if(key==='mortgage'){
+    const p = s.players[s.cur];
+    return `<h2 id="modal-title">Mortgage</h2><p>${playerLine(s,s.cur)}. Mortgaging pays half the price now, and unmortgaging later costs that plus 10%. Sell the buildings in a color set (under Build) before mortgaging any of it.</p>
+      ${managerHTML(s, s.cur, 'mortgage')}<div class="row-btns"><button class="btn" data-ui="close" data-fid="close">Done</button></div>`;
   }
   if(key==='trade') return tradeComposerHTML(s);
   if(key==='menu'){
@@ -2699,9 +2678,7 @@ function modalHTML(key){
       <p class="hint">Dark changes the screen around the board. The board itself stays white.</p>
       <h3>Dice rolling</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Dice rolling">${[['classic','Classic'],['immersive','Immersive']].map(([v,l])=>`<button class="btn small ${ui.rollStyle===v?'primary':''}" data-ui="rollstyle" data-v="${v}" aria-pressed="${ui.rollStyle===v}">${l}</button>`).join('')}</div>
-      <p class="hint">Classic: tap Roll dice and they roll right away. Immersive: tap Roll dice to pick up the 3D dice, then shake your phone, flick, or tap to throw them across the screen. Shaking also rolls without tapping first.</p>
-      ${ui.rollStyle==='immersive' ? `<label class="sens">Shake sensitivity <input type="range" id="shake-sens" min="1" max="10" step="1" value="${ui.shakeSens}" aria-valuetext="${ui.shakeSens} of 10"><output id="shake-sens-out">${ui.shakeSens}</output></label><p class="hint sens-ends"><span>Needs a hard shake</span><span>Easy to trigger</span></p>` : ''}
-      ${ui.rollStyle==='immersive' && matchMedia('(pointer:coarse)').matches ? `<p class="hint" id="motion-status" aria-live="polite">${motionStatusHTML()}</p>` : ''}
+      <p class="hint">Classic: tap Roll dice and they roll right away. Immersive: tap Roll dice to pick up the 3D dice, then flick or tap to throw them across the screen.</p>
       <h3>Animations</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
       <p class="hint">Dice, hops and flying cash.</p>
@@ -2723,7 +2700,8 @@ function modalHTML(key){
         <kbd>Space</kbd><span>Roll the dice</span>
         <kbd>Enter</kbd><span>End your turn</span>
         <kbd>U</kbd><span>Undo the last action</span>
-        <kbd>B</kbd><span>Build and mortgage</span>
+        <kbd>B</kbd><span>Build</span>
+        <kbd>M</kbd><span>Mortgage</span>
         <kbd>T</kbd><span>Propose a trade</span>
         <kbd>M</kbd><span>Sound on or off</span>
         <kbd>V</kbd><span>Full screen</span>
@@ -2913,7 +2891,6 @@ document.addEventListener('change', e=>{
   if(e.target.closest && e.target.closest('.tgrid')){ readTradeForm(); updateTradeSummary(); return; }
   if(e.target.id==='trade-to'){ readTradeForm(); ui.tradeDraft.to = +e.target.value; ui.tradeDraft.get = {cash:0,props:[],cards:[]}; syncModal(); }
 });
-document.addEventListener('input', e=>{ if(e.target.id==='shake-sens'){ ui.shakeSens = +e.target.value; LS.set('mono.shakeSens', String(ui.shakeSens)); $('#shake-sens-out').textContent = ui.shakeSens; e.target.setAttribute('aria-valuetext', ui.shakeSens+' of 10'); } });
 document.addEventListener('input', e=>{ if(e.target.closest && e.target.closest('.tgrid') && e.target.dataset.cash){ readTradeForm(); updateTradeSummary(); } });
 document.addEventListener('keydown', e=>{
   if(e.target.matches && e.target.matches('.bidder input') && e.key==='Enter'){ e.preventDefault(); e.target.parentElement.querySelector('[data-ui="customBid"]').click(); }
@@ -2922,9 +2899,8 @@ document.addEventListener('keydown', e=>{
 function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
-    case 'motionAllow': askMotionPermission().then(()=>{ if(ui.userModal==='menu') syncModal(); }); break;
     case 'rollstyle': ui.rollStyle = el.dataset.v==='immersive' ? 'immersive' : 'classic'; LS.set(KEY_ROLL, ui.rollStyle); syncModal();
-      if(ui.rollStyle==='immersive'){ const touch = matchMedia('(pointer:coarse)').matches; askMotionPermission().then(r=>{ toast(touch ? (r==='denied' ? 'Immersive rolls on. Motion access is off, so flick or tap to throw.' : 'Immersive rolls on. Tap Roll dice, then shake, flick or tap.') : 'Immersive rolls on. Click Roll dice, then flick or click.'); }); }
+      if(ui.rollStyle==='immersive') toast(matchMedia('(pointer:coarse)').matches ? 'Immersive rolls on. Tap Roll dice, then flick or tap.' : 'Immersive rolls on. Click Roll dice, then flick or click.');
       else toast('Classic rolls on.'); break;
     case 'motion': ui.motion = el.dataset.v; LS.set(KEY_MOTION, ui.motion); applyMotion(); syncModal(); toast(ui.motion==='on' ? 'Animations are on.' : 'Animations are off.'); break;
     case 'theme': ui.theme = el.dataset.v==='dark' ? 'dark' : 'light'; LS.set(KEY_THEME, ui.theme); applyTheme(); if(ui.state) syncModal(); toast(ui.theme==='dark' ? 'Dark theme.' : 'Light theme.'); break;
@@ -2933,7 +2909,8 @@ function uiCommand(cmd, el){
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
     case 'hl': { const id = +el.dataset.p; ui.hl = ui.hl===id ? null : id; renderBoardMarks(s); renderPlayers(s); $(`.pl-hl[data-p="${id}"]`)?.focus(); } break;
     case 'install': if(ui.installEvt){ ui.installEvt.prompt(); ui.installEvt.userChoice.finally(()=>{ ui.installEvt = null; updateInstall(); if(ui.userModal==='menu') syncModal(); }); } break;
-    case 'manage': openUser('manage'); break;
+    case 'build': openUser('build'); break;
+    case 'mortgage': openUser('mortgage'); break;
     case 'trade': ui.tradeDraft = null; ui.tradeOpen = new Set(); openUser('trade'); break;
     case 'tradeCard': { const i = +el.dataset.i, box = $(`#modal .tcard[data-i="${i}"]`);
       if(ui.tradeOpen.has(i)) ui.tradeOpen.delete(i); else ui.tradeOpen.add(i);
@@ -3003,7 +2980,8 @@ document.addEventListener('keydown', e=>{
   const press = sel => { const b = $(sel); if(b && !b.disabled){ e.preventDefault(); b.click(); } };
   if(k===' ' || k==='r'){ if(k===' ' && onButton) return; press(`#center [data-a*='"ROLL"'], #center [data-a*='"JAIL_ROLL"']`); }
   else if(k==='Enter' || k==='e'){ if(k==='Enter' && onButton) return; press(`#center [data-a*='"END_TURN"']`); }
-  else if(k==='b') press('#center [data-ui="manage"]');
+  else if(k==='b') press('#center [data-ui="build"]');
+  else if(k==='m') press('#center [data-ui="mortgage"]');
   else if(k==='t') press('#center [data-ui="trade"]');
   else if(k==='m') press('#mute-btn');
   else if(k==='v') press('#tv-btn');
