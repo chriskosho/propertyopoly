@@ -17,6 +17,7 @@ Once it's installed it opens full screen and works with no internet connection. 
 ## Features
 
 - 2 to 8 players, any mix of people and computer players, passing the device between turns
+- Fourteen shaded metal tokens, including the Scottie dog, T-rex, horse and rider, and cannon
 - House rules you can switch on at setup (all off by default): Free Parking jackpot, $400 for landing on Go, no rent while in jail, an auction timer
 - Shorter games: the official quick game (two properties each, ends at the second bankruptcy), a 20- or 40-round limit, or a 60- or 90-minute limit, with the richest player winning
 - A spinner to pick who goes first
