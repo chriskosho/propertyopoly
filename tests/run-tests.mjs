@@ -399,7 +399,7 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   const bg = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
   if ((await bg('#center .acts .btn.primary')) !== 'rgb(15, 122, 92)') problems.push('buttons: Roll dice is not green: ' + await bg('#center .acts .btn.primary'));
   await page.evaluate(() => { const s = __mono.state; s.phase = 'end'; s.dice = [3, 4]; render(); });
-  if ((await bg('#center .acts .btn.primary')) !== 'rgb(213, 47, 38)') problems.push('buttons: End turn is not red: ' + await bg('#center .acts .btn.primary'));
+  if ((await bg('#center .acts .btn.primary')) !== 'rgb(168, 20, 31)') problems.push('buttons: End turn is not red: ' + await bg('#center .acts .btn.primary'));
   await page.click('#menu-btn');
   await page.waitForSelector('#modal[open] #modal-x:not([hidden])').catch(() => problems.push('menu: no X button'));
   const order = await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-body [data-ui]')].map(e => e.dataset.ui); return b.indexOf('newgame') > -1 && b.indexOf('newgame') < b.indexOf('theme'); });
@@ -430,6 +430,8 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.waitForSelector('#confirm[open]').catch(() => problems.push('reopen: no confirmation before replacing the game'));
   await page.click('#confirm [data-no]');
   if (!(await page.evaluate(() => document.querySelector('#game').hidden))) problems.push('reopen: declining the confirmation still started a game');
+  const other = await page.evaluate(() => { const b = document.createElement('button'); b.className = 'btn primary'; document.body.appendChild(b); const c = getComputedStyle(b).backgroundColor; b.remove(); return c; });
+  if (other !== 'rgb(213, 47, 38)') problems.push('buttons: other main buttons changed color: ' + other);
   console.log('Button colors, menu X, new game confirmation and reopen buttons test done');
   await ctx.close();
 }

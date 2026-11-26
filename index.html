@@ -65,11 +65,11 @@ button,input,select{font:inherit;color:inherit}
   border-radius:3px;cursor:pointer;line-height:1.1;font-weight:500;
 }
 .btn:hover:not(:disabled){background:var(--line-soft)}
-.btn.primary{background:#F28C28;border-color:#F28C28;color:#1B1200;font-weight:700}
-.btn.primary:hover:not(:disabled){background:#F28C28;filter:brightness(1.08)}
+.btn.primary{background:var(--red);border-color:var(--red);color:var(--red-ink);font-weight:700}
+.btn.primary:hover:not(:disabled){background:var(--red);filter:brightness(1.08)}
 .btn.primary.roll,.acts .btn.primary.roll{background:#0F7A5C;border-color:#0F7A5C;color:#fff}
-.btn.primary.endturn,.acts .btn.primary.endturn{background:#D52F26;border-color:#D52F26;color:#fff}
-.btn.danger{background:#D52F26;border-color:#D52F26;color:#fff;font-weight:700}
+.btn.primary.endturn,.acts .btn.primary.endturn{background:#A8141F;border-color:#A8141F;color:#fff}
+.btn.danger{background:var(--red);border-color:var(--red);color:var(--red-ink);font-weight:700}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.small{font-size:.86rem;padding:.38em .62em}
 .btn.ghost{border-color:transparent}
@@ -1502,8 +1502,10 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.7.0';
+const APP_VERSION = '2.7.1';
 const RELEASES = [
+  {version:'2.7.1', date:'2026-11-26', title:'Original button color restored', changes:[
+    'Buttons other than Roll dice and End turn are back to their original color. Roll dice stays green and End turn is a deeper red.']},
   {version:'2.7.0', date:'2026-11-26', title:'Button colors, menu and new game', changes:[
     'Roll dice is green and End turn is red. Other main buttons are orange.',
     'The Game menu has an X to close it, and Start a new game now sits with the save buttons.',
