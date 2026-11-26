@@ -65,8 +65,11 @@ button,input,select{font:inherit;color:inherit}
   border-radius:3px;cursor:pointer;line-height:1.1;font-weight:500;
 }
 .btn:hover:not(:disabled){background:var(--line-soft)}
-.btn.primary{background:var(--red);border-color:var(--red);color:var(--red-ink);font-weight:700}
-.btn.primary:hover:not(:disabled){background:var(--red);filter:brightness(1.08)}
+.btn.primary{background:#F28C28;border-color:#F28C28;color:#1B1200;font-weight:700}
+.btn.primary:hover:not(:disabled){background:#F28C28;filter:brightness(1.08)}
+.btn.primary.roll,.acts .btn.primary.roll{background:#0F7A5C;border-color:#0F7A5C;color:#fff}
+.btn.primary.endturn,.acts .btn.primary.endturn{background:#D52F26;border-color:#D52F26;color:#fff}
+.btn.danger{background:#D52F26;border-color:#D52F26;color:#fff;font-weight:700}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.small{font-size:.86rem;padding:.38em .62em}
 .btn.ghost{border-color:transparent}
@@ -206,8 +209,7 @@ body:not(.show-log) .log{display:none}
 .die i{background:#0E2A4F;border-radius:50%;margin:13%}
 .acts{display:flex;gap:1.3cqi;flex-wrap:wrap;justify-content:center}
 .acts .btn{font-size:max(13px,2.1cqi);background-color:var(--sheet)}
-.btn.primary.endturn,.acts .btn.primary.endturn{background:#0F7A5C;border-color:#0F7A5C;color:#fff}
-.acts .btn.primary{background:var(--red);font-size:max(14px,2.5cqi);padding:.6em 1.4em}
+.acts .btn.primary{font-size:max(14px,2.5cqi);padding:.6em 1.4em}
 .acts2 .btn{font-size:max(12px,1.75cqi)}
 .titleblock{align-self:flex-end;border-collapse:collapse;font-family:var(--cond);font-stretch:condensed;font-size:max(9px,1.35cqi);color:var(--line);background:var(--sheet);margin-top:2cqi}
 .titleblock td{border:1px solid var(--line);padding:.28em .75em}
@@ -271,6 +273,10 @@ dialog{border:2px solid var(--line);background:var(--sheet);color:var(--ink);bor
 dialog::backdrop{background:rgba(6,22,44,.58)}
 dialog[open]{animation:pop .16s ease-out}
 @keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.xbtn{position:absolute;top:8px;right:8px;z-index:5;width:36px;height:36px;border:1.5px solid var(--line);background:var(--sheet);color:var(--line);font-size:26px;line-height:1;border-radius:3px;cursor:pointer;padding:0}
+.xbtn:hover{background:var(--line);color:var(--sheet)}
+dialog h2{padding-right:40px}
+#confirm{width:min(460px,calc(100vw - 20px))}
 .mb{padding:22px 24px 24px;overflow:auto;max-height:calc(100dvh - 24px)}
 dialog h2{font-family:var(--cond);font-stretch:condensed;font-size:1.85rem;margin:0 0 .35em;line-height:1;font-weight:700}
 dialog h3{font-family:var(--cond);font-stretch:condensed;font-size:1.15rem;margin:1.1em 0 .4em;font-weight:600;color:var(--line)}
@@ -548,7 +554,7 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
       <button class="btn small" data-ui="theme" data-v="light" aria-pressed="true">Light</button><button class="btn small" data-ui="theme" data-v="dark" aria-pressed="false">Dark</button></div>
     <div id="resume-box" class="resume" hidden>
       <p id="resume-text"></p>
-      <button class="btn primary" data-ui="resume">Resume game</button>
+      <div class="row-btns"><button class="btn primary" data-ui="resume">Resume game</button><button class="btn" data-ui="newopts" id="newopts-btn">Start a new game</button></div>
     </div>
     <form class="setup-form" id="setup-form" novalidate>
       <h2>New game</h2>
@@ -615,7 +621,8 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
   <radialGradient id="tok-shadow"><stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
   <filter id="tok-drop" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx=".6" dy="1.2" stdDeviation=".8" flood-color="#000" flood-opacity=".45"/></filter>
 </defs></svg>
-<dialog id="modal" aria-labelledby="modal-title"><div class="mb" id="modal-body"></div></dialog>
+<dialog id="modal" aria-labelledby="modal-title"><button class="xbtn" id="modal-x" data-ui="close" aria-label="Close" title="Close" hidden>&times;</button><div class="mb" id="modal-body"></div></dialog>
+<dialog id="confirm" aria-labelledby="confirm-title"><div class="mb" id="confirm-body"></div></dialog>
 <dialog id="whatsnew" aria-labelledby="wn-title"><div class="mb" id="wn-body"></div></dialog>
 <input type="file" id="file-in" accept="application/json,.json" hidden>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -1495,8 +1502,13 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.7.0';
 const RELEASES = [
+  {version:'2.7.0', date:'2026-11-26', title:'Button colors, menu and new game', changes:[
+    'Roll dice is green and End turn is red. Other main buttons are orange.',
+    'The Game menu has an X to close it, and Start a new game now sits with the save buttons.',
+    'Reopening the app with a game in progress shows Resume game and Start a new game. Start a new game opens the new game options.',
+    'Starting a new game while one is in progress now asks you to confirm first.']},
   {version:'2.6.0', date:'2026-11-26', title:'Back into your game', changes:[
     'Reopening the app now takes you straight back to the game in progress. Start a new game from the Game menu.',
     'A speaker button next to the gear turns sound on or off.',
@@ -2056,7 +2068,7 @@ function renderCenter(s){
               ${p.cards.length?`<button class="btn" ${act({type:'JAIL_CARD'})}>Use Get Out of Jail Free</button>`:''}`;
     } else {
       status = s.doubles>0 ? 'You rolled doubles. Roll again.' : 'Roll the dice to move.';
-      acts = `<button class="btn primary" ${act({type:'ROLL'})} aria-keyshortcuts="Space">Roll dice</button>`;
+      acts = `<button class="btn primary roll" ${act({type:'ROLL'})} aria-keyshortcuts="Space">Roll dice</button>`;
       const rs = rollRisks(s, s.cur).filter(r=>r.cost>0);
       if(rs.length){
         const odds = Math.round(rs.reduce((a,r)=>a+r.chance,0)*100), worst = rs.reduce((a,r)=>r.cost>a.cost?r:a);
@@ -2176,6 +2188,18 @@ function focusMainAction(){
   if(b && !b.disabled) b.focus({preventScroll:true});
 }
 function openUser(key){ if(requiredModal(ui.state)) return; ui.userModal = key; syncModal(); }
+/* A small yes/no question. Resolves true only for the first button. */
+function askConfirm(o){
+  return new Promise(res=>{
+    const d = $('#confirm');
+    $('#confirm-body').innerHTML = `<h2 id="confirm-title">${esc(o.title)}</h2><p>${esc(o.text)}</p><div class="row-btns"><button class="btn ${o.danger?'danger':'primary'}" data-yes>${esc(o.yes)}</button><button class="btn" data-no autofocus>${esc(o.no)}</button></div>`;
+    let answer = false;
+    d.addEventListener('close', ()=>res(answer), {once:true});
+    $('[data-yes]', d).onclick = ()=>{ answer = true; d.close(); };
+    $('[data-no]', d).onclick = ()=>d.close();
+    d.showModal();
+  });
+}
 function closeUser(){ ui.userModal = null; syncModal(); scheduleBot(); }
 function syncModal(){
   const s = ui.state, dlg = $('#modal');
@@ -2191,6 +2215,7 @@ function syncModal(){
   const undoBar = req && req!=='over' && ui.history.length
     ? `<div class="undo-bar"><button class="btn small ghost" data-ui="undo" data-fid="undo">Undo last action</button></div>` : '';
   $('#modal-body').innerHTML = modalHTML(key) + undoBar;
+  $('#modal-x').hidden = !!req;
   const priv = (fullKey==='pending:trade' && ui.tradeGate!==JSON.stringify(s.pending));
   dlg.classList.toggle('private', priv);
   dlg.classList.toggle('wide', key==='over' || key==='trade' || fullKey==='pending:trade');
@@ -2405,6 +2430,7 @@ function modalHTML(key){
       <p class="hint">The game saves itself after every action in this browser.</p>
       <div class="row-btns"><button class="btn" data-ui="save" autofocus>Save game</button><button class="btn" data-ui="loadslot" ${hasSlot?'':'disabled'}>Load saved game</button></div>
       <div class="row-btns" style="margin-top:10px"><button class="btn" data-ui="export">Export to a file</button><button class="btn" data-ui="import">Open a saved game file</button></div>
+      <div class="row-btns" style="margin-top:10px"><button class="btn" data-ui="newgame">Start a new game</button></div>
       ${rulesSummary(s)}
       <h3>Sound</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Sound">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${(ui.muted?'off':'on')===v?'primary':''}" data-ui="sound" data-v="${v}" aria-pressed="${(ui.muted?'off':'on')===v}">${l}</button>`).join('')}</div>
@@ -2441,7 +2467,7 @@ function modalHTML(key){
         <kbd>V</kbd><span>Full screen</span>
         <kbd>?</kbd><span>Open this menu</span>
       </div>
-      <div class="row-btns"><button class="btn" data-ui="newgame">${ui.confirmNew?'Press again to quit this game':'Start a new game'}</button><button class="btn" data-ui="close">Close</button></div>`;
+      <div class="row-btns"><button class="btn" data-ui="close">Close</button></div>`;
   }
   return '';
 }
@@ -2661,9 +2687,13 @@ function uiCommand(cmd, el){
     case 'export': exportGame(); break;
     case 'import': $('#file-in').click(); break;
     case 'newgame':
-      if(s && s.phase!=='over' && !ui.confirmNew && ui.userModal==='menu'){ ui.confirmNew = true; syncModal(); break; }
-      if(s && s.phase!=='over' && ui.userModal!=='menu'){ ui.confirmNew = true; openUser('menu'); break; }
-      ui.confirmNew = false; showSetup(); break;
+      if(s && s.phase!=='over'){
+        askConfirm({title:'End this game?', text:`Starting a new game ends the game in progress (turn ${s.turnNo}). To keep it, choose Keep playing and save it first from the Game menu.`, yes:'End game and start new', no:'Keep playing', danger:true})
+          .then(ok=>{ if(ok){ LS.del(KEY_AUTO); showSetup(); } });
+        break;
+      }
+      showSetup(); break;
+    case 'newopts': $('#setup-form').hidden = false; el.hidden = true; $('#setup-form input[type=text], #setup-form input:not([type])')?.focus(); $('#setup-form').scrollIntoView({block:'start', behavior:'smooth'}); break;
     case 'resume': { try{ const o = JSON.parse(LS.get(KEY_AUTO)); if(!validState(o)) throw 0; startWithState(o); }catch(e){ toast('The game in progress couldn’t be read.'); } } break;
   }
 }
@@ -2689,7 +2719,7 @@ function setTV(on, fromClick){
 }
 /* Keyboard shortcuts. Inside dialogs, Enter and Space act on the focused button as usual. */
 document.addEventListener('keydown', e=>{
-  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey || $('#whatsnew').open) return;
+  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey || $('#whatsnew').open || $('#confirm').open) return;
   if(e.target.closest && e.target.closest('input,select,textarea')) return;
   const k = e.key.length===1 ? e.key.toLowerCase() : e.key;
   if((k==='z' && e.ctrlKey) || (k==='u' && !e.ctrlKey)){ e.preventDefault(); undo(); return; }
@@ -2784,9 +2814,15 @@ $('#setup-form').addEventListener('submit', e=>{
   }
   const seen = {}; for(const p of ps){ seen[p.name] = (seen[p.name]||0)+1; if(seen[p.name]>1) p.name += ` ${seen[p.name]}`; }
   if(ps.every(p=>p.bot)){ toast('Make at least one player a person.'); return; }
+  const startIt = () => {
   readRules(); saveSetup();
   const seed = (Date.now() ^ Math.floor(Math.random()*0xFFFFFFFF)) >>> 0;
   startWithState(newGame({seed, players:ps, pickFirst:true, rules:engineRules(setup.rules)}), {spin:setup.spin});
+  };
+  let auto = null; try{ auto = JSON.parse(LS.get(KEY_AUTO)); }catch(err){}
+  if(validState(auto) && auto.phase!=='over'){
+    askConfirm({title:'End the game in progress?', text:`Starting a new game ends the game you left at turn ${auto.turnNo}. You can still resume it instead.`, yes:'End it and start the new game', no:'Keep the old game', danger:true}).then(ok=>{ if(ok) startIt(); });
+  } else startIt();
 });
 function showSetup(){
   stopBots();
@@ -2797,7 +2833,9 @@ function showSetup(){
   renderSetup(); renderRules(); updateInstall();
   let auto = null; try{ auto = JSON.parse(LS.get(KEY_AUTO)); }catch(e){}
   const box = $('#resume-box');
-  if(validState(auto) && auto.phase!=='over'){
+  const inProgress = validState(auto) && auto.phase!=='over';
+  $('#setup-form').hidden = inProgress; $('#newopts-btn').hidden = false;
+  if(inProgress){
     box.hidden = false;
     $('#resume-text').textContent = `A game is in progress: turn ${auto.turnNo}, ${auto.players.filter(p=>!p.bankrupt).length} players left, ${auto.players[auto.cur].name} to play.`;
   } else box.hidden = true;
@@ -3187,10 +3225,10 @@ function maybeShowWhatsNew(){
 document.body.classList.toggle('tv', ui.tv); document.body.classList.toggle('show-log', ui.showLog);
 applyMotion(); applyTheme();
 showSetup();
-/* Reopening the app goes straight back into the game in progress. */
-{
-  const fromUpdate = LS.get(KEY_RESUME)==='1'; LS.del(KEY_RESUME);
-  try{ const o = JSON.parse(LS.get(KEY_AUTO)); if(validState(o) && o.phase!=='over'){ startWithState(o, {noHandoff:true}); if(!fromUpdate) toast('Welcome back. Your game is right where you left it.'); } }catch(e){}
+/* After an automatic update the game picks up where it was. A normal reopen shows Resume game and Start a new game. */
+if(LS.get(KEY_RESUME)==='1'){
+  LS.del(KEY_RESUME);
+  try{ const o = JSON.parse(LS.get(KEY_AUTO)); if(validState(o) && o.phase!=='over') startWithState(o, {noHandoff:true}); }catch(e){}
 }
 maybeShowWhatsNew();
 </script>

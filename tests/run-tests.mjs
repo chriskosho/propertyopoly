@@ -211,7 +211,8 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.reload(); await page.waitForTimeout(500);
   if (await page.evaluate(() => document.documentElement.dataset.theme) !== 'dark') problems.push('theme: dark was not restored after reload');
   await page.evaluate(() => { localStorage.setItem('mono.theme', 'light'); });
-  // Turn animations off and confirm no dice toss. The reloaded app goes straight back into the game.
+  // Turn animations off and confirm no dice toss. After a reload the home screen offers Resume game.
+  await page.click('[data-ui=resume]');
   await page.waitForSelector('#game:not([hidden])', { timeout: 3000 });
   await page.evaluate(() => { const first = __mono.state.cur; for (let k = 0; k < 40; k++) { const s = __mono.state; if (s.cur !== first && s.phase === 'start' && !s.pending && !s.debts.length) break; __mono.autoplay(1); } });
   await page.waitForTimeout(1500);
@@ -377,10 +378,59 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('#menu-btn'); await page.click('#modal[open] [data-ui=close]'); // forces a save
   await page.waitForTimeout(400);
   await page.reload();
-  await page.waitForSelector('#game:not([hidden])', { timeout: 4000 }).catch(() => problems.push('resume: the game did not reopen on its own'));
+  await page.waitForSelector('#resume-box:not([hidden])', { timeout: 4000 }).catch(() => problems.push('resume: no Resume game box after reopening'));
+  if (await page.locator('#setup-form').isVisible()) problems.push('resume: the new game options are showing before Start a new game was chosen');
+  await page.click('[data-ui=resume]');
+  await page.waitForSelector('#game:not([hidden])', { timeout: 4000 }).catch(() => problems.push('resume: Resume game did not open the game'));
   const cash = await page.evaluate(() => __mono.state && __mono.state.players[0].cash);
-  if (cash === undefined || cash === null) problems.push('resume: no game state after reopening');
+  if (cash === undefined || cash === null) problems.push('resume: no game state after resuming');
   console.log('Resume, sound button, home theme and phone toolbar test done');
+  await ctx.close();
+}
+
+// 12. Button colors, X on the menu, new game in the menu with a confirmation, and the two reopen buttons.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1280, height: 860 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const bg = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
+  if ((await bg('#center .acts .btn.primary')) !== 'rgb(15, 122, 92)') problems.push('buttons: Roll dice is not green: ' + await bg('#center .acts .btn.primary'));
+  await page.evaluate(() => { const s = __mono.state; s.phase = 'end'; s.dice = [3, 4]; render(); });
+  if ((await bg('#center .acts .btn.primary')) !== 'rgb(213, 47, 38)') problems.push('buttons: End turn is not red: ' + await bg('#center .acts .btn.primary'));
+  await page.click('#menu-btn');
+  await page.waitForSelector('#modal[open] #modal-x:not([hidden])').catch(() => problems.push('menu: no X button'));
+  const order = await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-body [data-ui]')].map(e => e.dataset.ui); return b.indexOf('newgame') > -1 && b.indexOf('newgame') < b.indexOf('theme'); });
+  if (!order) problems.push('menu: Start a new game is not in the top section');
+  await page.click('#modal-x');
+  if (await page.locator('#modal[open]').count()) problems.push('menu: the X did not close it');
+  await page.click('#menu-btn'); await page.click('#modal[open] [data-ui=newgame]');
+  await page.waitForSelector('#confirm[open]').catch(() => problems.push('new game: no confirmation'));
+  await page.click('#confirm [data-no]');
+  if (await page.evaluate(() => document.querySelector('#game').hidden)) problems.push('new game: Keep playing still left the game');
+  await page.click('#modal[open] [data-ui=newgame]'); await page.waitForSelector('#confirm[open]');
+  await page.click('#confirm [data-yes]');
+  await page.waitForSelector('#setup:not([hidden])');
+  if (!(await page.locator('#setup-form').isVisible()) || await page.locator('#resume-box:not([hidden])').count()) problems.push('new game: after ending the game the options should show and no resume box');
+  // Start another game, then reload: two buttons, options hidden until Start a new game, and a confirmation on submit
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  await page.evaluate(() => { __mono.ui.state.debugDice = [[3, 4]]; }); await page.keyboard.press('Space'); await page.waitForTimeout(2500);
+  await page.reload();
+  await page.waitForSelector('#resume-box:not([hidden])');
+  const two = await page.locator('#resume-box .btn').allInnerTexts();
+  if (two.join('|') !== 'Resume game|Start a new game') problems.push('reopen: expected the two buttons, saw ' + two.join('|'));
+  await page.click('#newopts-btn');
+  if (!(await page.locator('#setup-form').isVisible())) problems.push('reopen: Start a new game did not open the new game options');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#confirm[open]').catch(() => problems.push('reopen: no confirmation before replacing the game'));
+  await page.click('#confirm [data-no]');
+  if (!(await page.evaluate(() => document.querySelector('#game').hidden))) problems.push('reopen: declining the confirmation still started a game');
+  console.log('Button colors, menu X, new game confirmation and reopen buttons test done');
   await ctx.close();
 }
 
