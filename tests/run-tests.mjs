@@ -179,6 +179,39 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
+// 7. Animations: a device that asks for reduced motion skips them, and the Game menu setting turns them back on.
+{
+  const { ctx, page } = await fresh({ reducedMotion: 'reduce', viewport: { width: 1280, height: 820 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.click('#modal[open] [data-ui=handoffOk]');
+  const notice = await page.waitForSelector('#toast div', { timeout: 4000 }).then(e => e.innerText()).catch(() => '');
+  if (!/reduced motion/.test(notice)) problems.push('animations: no notice that reduced motion turned animations off');
+  const roll = async () => {
+    await page.evaluate(() => { __mono.ui.state.debugDice = [[3, 4]]; });
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(200);
+    return page.evaluate(() => document.querySelectorAll('#dice .die.tossing').length);
+  };
+  const off = await roll();
+  if (off !== 0) problems.push('animations: dice were tossed even though the device asked for reduced motion');
+  await page.waitForTimeout(1500);
+  // Play on (resolving any card or purchase) until the next player is ready to roll.
+  await page.evaluate(() => { const first = __mono.state.cur; for (let k = 0; k < 40; k++) { const s = __mono.state; if (s.cur !== first && s.phase === 'start' && !s.pending && !s.debts.length) break; __mono.autoplay(1); } });
+  await page.waitForTimeout(300);
+  await page.keyboard.press('?');
+  await page.click('#modal[open] [data-ui=motion][data-v=on]');
+  await page.click('#modal[open] [data-ui=close]');
+  const on = await roll();
+  if (on !== 2) problems.push(`animations: expected 2 tossed dice after turning animations on, saw ${on}`);
+  const saved = await page.evaluate(() => localStorage.getItem('mono.motion'));
+  if (saved !== 'on') problems.push('animations: the setting was not remembered');
+  console.log(`Animation test: reduced motion skipped them (${off} tossed), the setting turned them on (${on} tossed)`);
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }

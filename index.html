@@ -449,9 +449,11 @@ dialog.wide{width:min(760px,calc(100vw - 20px))}
 #whatsnew li{margin:.3em 0;line-height:1.45}
 #whatsnew .row-btns{position:sticky;bottom:-24px;background:var(--sheet);padding:12px 0 4px;margin-top:10px;border-top:1px solid var(--line-soft)}
 
+/* Animations follow the device's reduce-motion setting unless the player overrides it in the Game menu. */
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  html:not(.motion-on) *,html:not(.motion-on) *::before,html:not(.motion-on) *::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
 }
+html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
 </style>
 </head>
 <body>
@@ -1408,8 +1410,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.1.1';
 const RELEASES = [
+  {version:'2.1.1', date:'2026-11-25', title:'Animation setting', changes:[
+    'Animations now have a setting in the Game menu: Match device, On or Off. If your device asks for reduced motion, the game used to skip every animation without saying so. You’ll now get a notice, and you can turn them on.',
+    'Tokens hop higher between spaces.']},
   {version:'2.1.0', date:'2026-11-25', title:'Automatic updates', changes:[
     'The app now checks for new versions and updates itself. Your game in progress is kept.',
     'This window shows what changed after each update.',
@@ -1432,12 +1437,17 @@ const RELEASES = [
   {version:'1.0.0', title:'First release', changes:[
     'A hot-seat property trading game for 2 to 8 players, with auctions, building, mortgages, trading, jail, bankruptcy, saving and undo.']},
 ];
+const KEY_MOTION='mono.motion', KEY_MOTION_TOLD='mono.motionTold';
 const KEY_SEEN='mono.seenVersion', KEY_RELOAD='mono.reloadedFor', KEY_RESUME='mono.resumeAfterUpdate';
 const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup', KEY_TV='mono.tv';
 const ui = {state:null, history:[], modalKey:null, userModal:null, animating:false, displayPos:[], handoffSeen:0,
   overDismissed:false, tradeDraft:null, tradeGate:null, muted:LS.get(KEY_MUTE)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
+  motion:['auto','on','off'].includes(LS.get(KEY_MOTION)) ? LS.get(KEY_MOTION) : 'auto',
   hl:null, botTimer:null, spin:null, auctionKey:null, auctionEnds:0, installEvt:null};
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Animations: 'auto' follows the device's reduce-motion setting, 'on' and 'off' override it. */
+const deviceReducesMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion = () => ui.motion==='off' || (ui.motion==='auto' && deviceReducesMotion());
+function applyMotion(){ const c = document.documentElement.classList; c.toggle('motion-on', ui.motion==='on'); c.toggle('motion-off', ui.motion==='off'); }
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
 const esc = t => String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1638,7 +1648,7 @@ async function animateMove(f, fast){
     const disc = $('.disc', tok);
     for(let k=1;k<=steps;k++){
       ui.displayPos[f.player] = (f.from+k)%40; placeTokens();
-      disc.animate([{transform:'translateY(0) scale(1)'},{transform:`translateY(-${steps>12?28:48}%) scale(1.08)`, offset:.45},{transform:'translateY(0) scale(1)'}],
+      disc.animate([{transform:'translateY(0) scale(1)'},{transform:`translateY(-${steps>12?45:75}%) scale(1.14)`, offset:.45},{transform:'translateY(0) scale(1)'}],
         {duration:delay, easing:'ease-out'});
       sfx.play('step'); await sleep(delay);
     }
@@ -2214,6 +2224,9 @@ function modalHTML(key){
       <div class="row-btns"><button class="btn" data-ui="save" autofocus>Save game</button><button class="btn" data-ui="loadslot" ${hasSlot?'':'disabled'}>Load saved game</button></div>
       <div class="row-btns" style="margin-top:10px"><button class="btn" data-ui="export">Export to a file</button><button class="btn" data-ui="import">Open a saved game file</button></div>
       ${rulesSummary(s)}
+      <h3>Animations</h3>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['auto','Match device'],['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
+      <p class="hint">${deviceReducesMotion() ? 'This device asks apps to reduce motion, so Match device turns animations off. Choose On to see dice, hops and flying cash anyway.' : 'Dice, hops and flying cash. Match device turns them off only if the device asks for reduced motion.'}</p>
       <p class="hint">Version ${esc(APP_VERSION)}. New versions install on their own. <button class="btn small ghost" data-ui="wnOpen">What’s new</button></p>
       <div class="row-btns install-only-browser" style="margin-top:10px">${ui.installEvt?'<button class="btn" data-ui="install">Install the app</button>':''}</div>
       ${isIOS() ? '<p class="install-hint install-only-browser">To install on iPhone or iPad, tap Share in Safari, then Add to Home Screen.</p>' : ''}
@@ -2381,6 +2394,7 @@ function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
     case 'handoffOk': ui.handoffSeen = s.turnNo; syncModal(); scheduleBot(); break;
+    case 'motion': ui.motion = el.dataset.v; LS.set(KEY_MOTION, ui.motion); applyMotion(); syncModal(); toast(ui.motion==='on' ? 'Animations are on.' : ui.motion==='off' ? 'Animations are off.' : 'Animations follow this device’s setting.'); break;
     case 'wnOpen': showWhatsNew(RELEASES.slice(0,3), true); break;
     case 'wnClose': LS.set(KEY_SEEN, APP_VERSION); $('#whatsnew').close(); break;
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
@@ -2456,6 +2470,10 @@ function startWithState(s, opts={}){
   s.fx = []; migrate(s); stopBots();
   ui.state = s; ui.history = []; ui.handoffSeen = opts.noHandoff ? s.turnNo : s.turnNo - 1; ui.overDismissed = false; ui.userModal = null; ui.modalKey = null; ui.lastRingPos = null; ui.tradeGate = null;
   ui.hl = null; ui.spin = opts.spin ? {} : null;
+  if(ui.motion==='auto' && deviceReducesMotion() && !LS.get(KEY_MOTION_TOLD)){
+    LS.set(KEY_MOTION_TOLD, '1');
+    setTimeout(()=>toast('Animations are off because this device asks for reduced motion. Turn them on in the Game menu.'), 600);
+  }
   $('#setup').hidden = true; $('#game').hidden = false;
   buildBoard(); autosave(); render();
 }
@@ -2909,6 +2927,7 @@ function maybeShowWhatsNew(){
 }
 
 document.body.classList.toggle('tv', ui.tv);
+applyMotion();
 showSetup();
 if(LS.get(KEY_RESUME)==='1'){
   LS.del(KEY_RESUME);
