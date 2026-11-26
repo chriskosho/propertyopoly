@@ -91,6 +91,8 @@ button,input,select{font:inherit;color:inherit}
 .hero svg .dim{fill:none;stroke:var(--red);stroke-width:1.2}
 .hero svg text{font-family:var(--cond);font-stretch:condensed;fill:var(--line)}
 .hero svg text.red{fill:var(--red)}
+.setup-theme{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin:0 0 12px;font-family:var(--cond);font-stretch:condensed;color:var(--muted)}
+.setup-theme .btn[aria-pressed=true]{background:var(--line);color:var(--paper);border-color:var(--line)}
 .resume{border:1.5px solid var(--red);padding:14px 16px;margin:0 0 20px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--sheet)}
 .resume p{margin:0;font-size:1rem}
 .setup-form{border:2px solid var(--line);background:var(--sheet);padding:clamp(16px,3vw,28px)}
@@ -145,7 +147,10 @@ body:not(.show-log) .log{display:none}
 @media (max-width:900px){
   #game{flex-direction:column;height:auto;padding:10px}
   .board{width:100%}
-  .side{flex:none}
+  .side{display:contents}
+  .side>*{order:1}
+  .toolbar{order:-1;position:sticky;top:0;z-index:6;margin:-10px -10px 0;padding:8px 10px;background:var(--paper);border-bottom:1px solid var(--line-soft)}
+  .undo-note{display:none}
   .log{max-height:45vh}
 }
 
@@ -539,6 +544,8 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
     </svg>
   </div>
   <div>
+    <div class="setup-theme" role="group" aria-label="Theme"><span>Appearance</span>
+      <button class="btn small" data-ui="theme" data-v="light" aria-pressed="true">Light</button><button class="btn small" data-ui="theme" data-v="dark" aria-pressed="false">Dark</button></div>
     <div id="resume-box" class="resume" hidden>
       <p id="resume-text"></p>
       <button class="btn primary" data-ui="resume">Resume game</button>
@@ -590,6 +597,7 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
     <div class="toolbar">
       <button class="btn small" data-ui="undo" id="undo-btn" aria-keyshortcuts="U">Undo</button>
       <button class="btn small fs" data-ui="tv" id="tv-btn" aria-pressed="false" aria-keyshortcuts="V"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="fs-icon" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg><span id="tv-label">Full screen</span></button>
+      <button class="btn small icon" data-ui="mute" id="sound-btn" aria-pressed="true" aria-keyshortcuts="M"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="snd-icon" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button>
       <button class="btn small icon" data-ui="menu" id="menu-btn" aria-label="Game menu" title="Game menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
     </div>
     <p class="undo-note" id="undo-note"></p>
@@ -1487,8 +1495,12 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.5.0';
+const APP_VERSION = '2.6.0';
 const RELEASES = [
+  {version:'2.6.0', date:'2026-11-26', title:'Back into your game', changes:[
+    'Reopening the app now takes you straight back to the game in progress. Start a new game from the Game menu.',
+    'A speaker button next to the gear turns sound on or off.',
+    'The Light and Dark choice is also on the home screen.']},
   {version:'2.5.0', date:'2026-11-26', title:'Cleaner screen', changes:[
     'The only buttons on the game screen are now Undo, Full screen (was TV mode) and a gear for the Game menu.',
     'Sound and the Game log are now options in the Game menu. The log is hidden until you turn it on.',
@@ -1553,6 +1565,7 @@ function applyMotion(){ document.documentElement.classList.toggle('motion-off', 
 function applyTheme(){
   document.documentElement.dataset.theme = ui.theme;
   const m = document.querySelector('meta[name=theme-color]'); if(m) m.content = ui.theme==='dark' ? '#0B2A50' : '#E6EDF1';
+  $$('.setup-theme [data-v]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===ui.theme)));
 }
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
@@ -2137,6 +2150,8 @@ function updateToolbar(){
   const s = ui.state;
   $('#undo-note').textContent = !ui.history.length ? 'Undo works for actions in the current turn.' :
     `Undo is available for ${ui.history.length} action${ui.history.length>1?'s':''}. Dice results stay the same if you redo a roll.`;
+  const sb = $('#sound-btn'); sb.setAttribute('aria-label', ui.muted ? 'Sound is off. Turn sound on' : 'Sound is on. Turn sound off'); sb.title = ui.muted ? 'Sound is off' : 'Sound is on'; sb.setAttribute('aria-pressed', String(!ui.muted));
+  $('#snd-icon').setAttribute('d', ui.muted ? 'M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z' : 'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z');
   const tv = $('#tv-btn'); $('#tv-label').textContent = ui.tv ? 'Exit full screen' : 'Full screen'; tv.setAttribute('aria-pressed', String(ui.tv));
   $('#fs-icon').setAttribute('d', ui.tv ? 'M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z' : 'M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z');
 }
@@ -2616,7 +2631,7 @@ function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
     case 'motion': ui.motion = el.dataset.v; LS.set(KEY_MOTION, ui.motion); applyMotion(); syncModal(); toast(ui.motion==='on' ? 'Animations are on.' : 'Animations are off.'); break;
-    case 'theme': ui.theme = el.dataset.v==='dark' ? 'dark' : 'light'; LS.set(KEY_THEME, ui.theme); applyTheme(); syncModal(); toast(ui.theme==='dark' ? 'Dark theme.' : 'Light theme.'); break;
+    case 'theme': ui.theme = el.dataset.v==='dark' ? 'dark' : 'light'; LS.set(KEY_THEME, ui.theme); applyTheme(); if(ui.state) syncModal(); toast(ui.theme==='dark' ? 'Dark theme.' : 'Light theme.'); break;
     case 'wnOpen': showWhatsNew(RELEASES.slice(0,3), true); break;
     case 'wnClose': LS.set(KEY_SEEN, APP_VERSION); $('#whatsnew').close(); break;
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
@@ -2638,8 +2653,8 @@ function uiCommand(cmd, el){
     case 'customBid': { const id = +el.dataset.player, v = +$(`#cb${id}`).value; if(!v){ toast('Enter a bid amount first.'); return; } dispatch({type:'AUCTION_BID', player:id, amount:v}); } break;
     case 'undo': undo(); break;
     case 'tv': setTV(!ui.tv, true); break;
-    case 'mute': ui.muted = !ui.muted; LS.set(KEY_MUTE, ui.muted?'1':'0'); syncModal(); toast(ui.muted ? 'Sound off.' : 'Sound on.'); if(!ui.muted) sfx.play('collect'); break;
-    case 'sound': ui.muted = el.dataset.v==='off'; LS.set(KEY_MUTE, ui.muted?'1':'0'); syncModal(); if(!ui.muted) sfx.play('collect'); break;
+    case 'mute': ui.muted = !ui.muted; LS.set(KEY_MUTE, ui.muted?'1':'0'); updateToolbar(); syncModal(); toast(ui.muted ? 'Sound off.' : 'Sound on.'); if(!ui.muted) sfx.play('collect'); break;
+    case 'sound': ui.muted = el.dataset.v==='off'; LS.set(KEY_MUTE, ui.muted?'1':'0'); updateToolbar(); syncModal(); if(!ui.muted) sfx.play('collect'); break;
     case 'log': ui.showLog = el.dataset.v==='on'; LS.set(KEY_LOG, ui.showLog?'1':'0'); document.body.classList.toggle('show-log', ui.showLog); syncModal(); break;
     case 'save': LS.set(KEY_SLOT, JSON.stringify(s)) ? toast(`Saved at turn ${s.turnNo}.`) : toast('This browser blocked saving. Use Export to a file instead.'); syncModal(); break;
     case 'loadslot': { const raw = LS.get(KEY_SLOT); try{ const o = JSON.parse(raw); if(!validState(o)) throw 0; startWithState(o); toast(`Loaded the saved game at turn ${o.turnNo}.`); }catch(e){ toast('The saved game couldn’t be read.'); } } break;
@@ -3172,9 +3187,10 @@ function maybeShowWhatsNew(){
 document.body.classList.toggle('tv', ui.tv); document.body.classList.toggle('show-log', ui.showLog);
 applyMotion(); applyTheme();
 showSetup();
-if(LS.get(KEY_RESUME)==='1'){
-  LS.del(KEY_RESUME);
-  try{ const o = JSON.parse(LS.get(KEY_AUTO)); if(validState(o) && o.phase!=='over') startWithState(o, {noHandoff:true}); }catch(e){}
+/* Reopening the app goes straight back into the game in progress. */
+{
+  const fromUpdate = LS.get(KEY_RESUME)==='1'; LS.del(KEY_RESUME);
+  try{ const o = JSON.parse(LS.get(KEY_AUTO)); if(validState(o) && o.phase!=='over'){ startWithState(o, {noHandoff:true}); if(!fromUpdate) toast('Welcome back. Your game is right where you left it.'); } }catch(e){}
 }
 maybeShowWhatsNew();
 </script>
