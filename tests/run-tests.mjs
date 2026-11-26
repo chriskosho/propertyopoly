@@ -68,11 +68,11 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   if (turnsEnded < 6) problems.push('interface test: could not finish 6 turns through the UI');
   console.log(`Interface test: ${turnsEnded} turns played through the UI`);
 
-  // 3. TV mode toggle (shortcuts are off while a dialog is open, so close it first)
+  // 3. Full screen toggle (shortcuts are off while a dialog is open, so close it first)
   await page.keyboard.press('v');
-  if (!(await page.evaluate(() => document.body.classList.contains('tv')))) problems.push('TV mode did not turn on');
+  if (!(await page.evaluate(() => document.body.classList.contains('tv')))) problems.push('Full screen layout did not turn on');
   await page.keyboard.press('v');
-  if (await page.evaluate(() => document.body.classList.contains('tv'))) problems.push('TV mode did not turn off');
+  if (await page.evaluate(() => document.body.classList.contains('tv'))) problems.push('Full screen layout did not turn off');
   await ctx.close();
 }
 
@@ -315,6 +315,43 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   const confettiLeft = await page.locator('#board .confetti, #board .mono-banner').count();
   if (confettiLeft) problems.push('monopoly: celebration left elements on the board');
   console.log('Turn, reminder, for-sale, trade and monopoly test done');
+  await ctx.close();
+}
+
+// 10. Cleaner screen: toolbar, log, sound, colors, spinner length.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1280, height: 860 } });
+  await page.goto(url);
+  const heroBg = await page.evaluate(() => getComputedStyle(document.querySelector('.hero svg .ln')).fill);
+  if (heroBg !== 'rgb(255, 255, 255)') problems.push('home: cards are not white: ' + heroBg);
+  await page.click('input[name=count][value="3"]', { force: true });
+  await page.check('#spinfirst');
+  await page.click('button[type=submit]');
+  const t0 = Date.now();
+  await page.waitForSelector('#modal[open] .spin');
+  await page.click('#modal[open] [data-ui=spinOk]:not([disabled])', { timeout: 15000 });
+  const spinMs = Date.now() - t0;
+  if (spinMs < 4000) problems.push(`spinner: only ${spinMs} ms`);
+  const bar = await page.locator('.toolbar button').evaluateAll(els => els.map(e => (e.getAttribute('aria-label') || e.innerText).trim()));
+  if (bar.join('|') !== 'Undo|Full screen|Game menu') problems.push('toolbar: expected Undo, Full screen, Game menu but saw ' + bar.join('|'));
+  if (await page.locator('#log').isVisible()) problems.push('log: visible by default');
+  const centerImg = await page.evaluate(() => getComputedStyle(document.querySelector('#board .center')).backgroundImage);
+  if (centerImg !== 'none') problems.push('board: the center still has a pattern: ' + centerImg);
+  const colors = await page.evaluate(() => { const r = document.querySelector('#center .acts .btn.primary'); return getComputedStyle(r).backgroundColor; });
+  await page.evaluate(() => { __mono.ui.state.debugDice = [[1, 2]]; });
+  await page.keyboard.press('Space'); await page.waitForTimeout(2500);
+  await page.evaluate(() => __mono.autoplay(1)).catch(() => {});
+  await page.click('#menu-btn');
+  await page.waitForSelector('#modal[open] [data-ui=log]');
+  await page.click('#modal[open] [data-ui=log][data-v=on]');
+  if (!(await page.locator('#log').isVisible())) problems.push('log: not shown after turning it on in the menu');
+  await page.click('#modal[open] [data-ui=sound][data-v=off]');
+  if ((await page.evaluate(() => localStorage.getItem('mono.muted'))) !== '1') problems.push('sound: Off in the menu did not mute');
+  await page.click('#modal[open] [data-ui=sound][data-v=on]');
+  if ((await page.evaluate(() => localStorage.getItem('mono.muted'))) !== '0') problems.push('sound: On in the menu did not unmute');
+  await page.click('#modal[open] [data-ui=log][data-v=off]');
+  if (await page.locator('#log').isVisible()) problems.push('log: still visible after hiding');
+  console.log(`Screen test: toolbar ${bar.join(', ')}, spinner ${spinMs} ms, roll button ${colors}`);
   await ctx.close();
 }
 
