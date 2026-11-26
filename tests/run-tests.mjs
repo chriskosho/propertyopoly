@@ -550,6 +550,11 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('#menu-btn');
   const ms = await page.locator('#motion-status').innerText().catch(() => '');
   if (!/Motion readings are arriving/.test(ms)) problems.push('immersive: menu motion check missing or wrong: ' + ms);
+  const sens = await page.locator('#shake-sens').inputValue().catch(() => null);
+  if (sens !== '5') problems.push('immersive: shake sensitivity should default to 5, saw ' + sens);
+  await page.locator('#shake-sens').fill('2'); await page.waitForTimeout(450);
+  if ((await page.evaluate(() => localStorage.getItem('mono.shakeSens'))) !== '2' || !/over 15\.0/.test(await page.locator('#motion-status').innerText())) problems.push('immersive: slider did not change the needed force');
+  await page.locator('#shake-sens').fill('5');
   await page.click('#modal-x');
   // 5. Keyboard: R picks up, Space throws
   await page.evaluate(() => { const s = __mono.ui.state; s.pending = null; render(); syncModal(); });
