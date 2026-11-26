@@ -285,6 +285,7 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .hint{font-size:.88rem;color:var(--muted)}
 .warnline{color:var(--red)}
 /* title deed */
+.deed-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 6px}.deed-nav span{min-width:5.5em;text-align:center;color:var(--muted)}.deed-tip{text-align:center;margin:0 0 8px;font-size:.8rem}
 .deed{background:var(--card);color:var(--card-ink);border:1.5px solid var(--card-ink);width:min(270px,100%);margin:4px auto 12px;font-family:var(--cond);font-stretch:condensed;padding:8px}
 .deed .hd{background:var(--g,#fff);border:1.5px solid var(--card-ink);padding:9px 8px;text-align:center;color:var(--gt,#13243D)}
 .deed .hd small{display:block;font-size:.78rem}
@@ -1502,8 +1503,10 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.7.1';
+const APP_VERSION = '2.7.2';
 const RELEASES = [
+  {version:'2.7.2', date:'2026-11-26', title:'Swipe between cards', changes:[
+    'When you open a card from Still for sale (or from a player’s properties), you can now swipe sideways, use the arrow keys, or tap Previous and Next to move to the other cards in that row. No need to close the card first.']},
   {version:'2.7.1', date:'2026-11-26', title:'Original button color restored', changes:[
     'Buttons other than Roll dice and End turn are back to their original color. Roll dice stays green and End turn is a deeper red.']},
   {version:'2.7.0', date:'2026-11-26', title:'Button colors, menu and new game', changes:[
@@ -2202,6 +2205,20 @@ function askConfirm(o){
     d.showModal();
   });
 }
+/* Step through the cards in the row the deed was opened from (for sale, or a player's holdings). */
+function deedStep(d){
+  const k = ui.userModal; if(!k || !k.startsWith('deed:') || !ui.deedList) return;
+  const L = ui.deedList, at = L.indexOf(+k.slice(5)); if(at<0 || L.length<2) return;
+  ui.userModal = 'deed:'+L[(at+d+L.length)%L.length]; syncModal();
+}
+(function wireDeedSwipe(){
+  let x0 = null, y0 = 0;
+  const dlg = document.getElementById('modal');
+  dlg.addEventListener('touchstart', e=>{ if(e.touches.length!==1 || !(ui.userModal||'').startsWith('deed:')){ x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  dlg.addEventListener('touchend', e=>{ if(x0==null) return; const t = e.changedTouches[0], dx = t.clientX-x0, dy = t.clientY-y0; x0 = null;
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5) deedStep(dx<0 ? 1 : -1); }, {passive:true});
+  dlg.addEventListener('keydown', e=>{ if((ui.userModal||'').startsWith('deed:') && (e.key==='ArrowRight'||e.key==='ArrowLeft')){ e.preventDefault(); deedStep(e.key==='ArrowRight'?1:-1); } });
+})();
 function closeUser(){ ui.userModal = null; syncModal(); scheduleBot(); }
 function syncModal(){
   const s = ui.state, dlg = $('#modal');
@@ -2417,7 +2434,9 @@ function modalHTML(key){
         chance:'Draw the top Chance card and follow it.', chest:'Draw the top Community Chest card and follow it.', tax:`Pay ${money(sp.amount||0)} to the bank.`}[sp.type];
       return `<h2 id="modal-title">${esc(sp.name)}</h2><p>${what}</p><div class="row-btns"><button class="btn" data-ui="close" autofocus>Close</button></div>`;
     }
-    return `<h2 id="modal-title" class="visually-hidden" style="position:absolute;left:-9999px">${esc(sp.name)}</h2>${deedHTML(i)}<div class="row-btns" style="justify-content:center"><button class="btn" data-ui="close" autofocus>Close</button></div>`;
+    const L = ui.deedList, at = L ? L.indexOf(i) : -1;
+    const nav = at>=0 && L.length>1 ? `<div class="deed-nav"><button class="btn" data-ui="deedNav" data-d="-1" data-fid="dprev" aria-label="Previous card">‹ Previous</button><span aria-live="polite">${at+1} of ${L.length}</span><button class="btn" data-ui="deedNav" data-d="1" data-fid="dnext" aria-label="Next card">Next ›</button></div><p class="hint deed-tip">Swipe sideways or use the arrow keys to change cards.</p>` : '';
+    return `<h2 id="modal-title" class="visually-hidden" style="position:absolute;left:-9999px">${esc(sp.name)}</h2>${deedHTML(i)}${nav}<div class="row-btns" style="justify-content:center"><button class="btn" data-ui="close" ${nav?'':'autofocus'}>Close</button></div>`;
   }
   if(key==='manage'){
     const p = s.players[s.cur];
@@ -2672,7 +2691,11 @@ function uiCommand(cmd, el){
       if(box) box.hidden = !ui.tradeOpen.has(i); el.setAttribute('aria-expanded', String(ui.tradeOpen.has(i))); break; }
     case 'tradeAdd': readTradeForm(); { const side = el.dataset.side; el.dataset.props.split(',').map(Number).forEach(i=>{ if(!ui.tradeDraft[side].props.includes(i)) ui.tradeDraft[side].props.push(i); }); } syncModal(); break;
     case 'menu': ui.confirmNew = false; openUser('menu'); break;
-    case 'deed': if(requiredModal(s)){ toast(BOARD[+el.dataset.i].name+': finish the current decision to view its deed.'); } else openUser('deed:'+el.dataset.i); break;
+    case 'deed': if(requiredModal(s)){ toast(BOARD[+el.dataset.i].name+': finish the current decision to view its deed.'); } else {
+      const row = el.closest('.holdings');
+      ui.deedList = row ? $$('.chip[data-i]', row).map(c=>+c.dataset.i) : null;
+      openUser('deed:'+el.dataset.i); } break;
+    case 'deedNav': deedStep(+el.dataset.d); break;
     case 'close': closeUser(); break;
     case 'standings': ui.overDismissed = false; syncModal(); break;
     case 'viewBoard': ui.overDismissed = true; syncModal(); break;
