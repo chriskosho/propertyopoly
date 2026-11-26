@@ -272,6 +272,10 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   // For sale panel
   const fs = await page.locator('#forsale .fs-count').innerText();
   if (!/28 of 28/.test(fs)) problems.push('for sale: expected 28 of 28 at the start, saw ' + fs);
+  const fsRow = await page.evaluate(() => { const r = document.querySelector('#fs-row'); const cs = getComputedStyle(r); return { ox: cs.overflowX, wrap: cs.flexWrap, over: r.scrollWidth > r.clientWidth, h: r.clientHeight, hint: !document.querySelector('#fs-swipe').hidden }; });
+  if (fsRow.ox !== 'auto' || fsRow.wrap !== 'nowrap' || !fsRow.over || !fsRow.hint || fsRow.h > 60) problems.push('for sale: the row is not a sideways scroller: ' + JSON.stringify(fsRow));
+  await page.evaluate(() => { document.querySelector('#fs-row').scrollLeft = 120; });
+  if ((await page.evaluate(() => document.querySelector('#fs-row').scrollLeft)) < 50) problems.push('for sale: the row did not scroll sideways');
   // Mortgage reminder at the start of a turn
   await page.evaluate(() => { const s = __mono.state; s.cur = 0; s.props[1].owner = 0; s.props[1].mortgaged = true; s.props[3].owner = 0; render(); });
   const note = await page.locator('.mortnote').innerText().catch(() => '');
