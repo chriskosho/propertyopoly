@@ -436,6 +436,41 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
+// 13. Cards opened from Still for sale can be stepped through without closing.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 }, hasTouch: true });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const total = await page.locator('#fs-row .chip').count();
+  await page.locator('#fs-row .chip').nth(1).click();
+  await page.waitForSelector('#modal[open] .deed-nav');
+  const title = () => page.evaluate(() => document.querySelector('#modal .deed .hd strong')?.textContent);
+  const pos = () => page.locator('#modal .deed-nav span').innerText();
+  const first = await title();
+  if ((await pos()) !== `2 of ${total}`) problems.push('deed nav: expected "2 of ' + total + '", saw ' + await pos());
+  await page.click('#modal [data-ui=deedNav][data-d="1"]');
+  const second = await title();
+  if (second === first) problems.push('deed nav: Next did not change the card');
+  await page.keyboard.press('ArrowLeft');
+  if ((await title()) !== first) problems.push('deed nav: ArrowLeft did not go back');
+  // swipe left = next card
+  await page.evaluate(() => { const d = document.querySelector('#modal'); const mk = (type, x) => { const t = new Touch({ identifier: 1, target: d, clientX: x, clientY: 300 }); d.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true })); }; mk('touchstart', 300); mk('touchend', 150); });
+  if ((await title()) !== second) problems.push('deed nav: swipe left did not show the next card');
+  // wraps around from the first card
+  await page.locator('#modal .row-btns [data-ui=close]').click();
+  await page.locator('#fs-row .chip').nth(0).click();
+  await page.waitForSelector('#modal[open] .deed-nav');
+  await page.keyboard.press('ArrowLeft');
+  if ((await pos()) !== `${total} of ${total}`) problems.push('deed nav: did not wrap to the last card: ' + await pos());
+  await page.locator('#modal .row-btns [data-ui=close]').click();
+  if (await page.locator('#modal[open]').count()) problems.push('deed nav: Close did not close');
+  console.log('Card navigation test done');
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
