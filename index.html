@@ -339,8 +339,13 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .tdet summary{cursor:pointer;color:var(--line);font-size:.88rem}
 .mortnote{margin:8px 0 0;font-size:.92rem;text-align:center;max-width:34em;color:var(--ink)}
 .mortnote .btn{display:block;margin:4px auto 0;border-color:var(--line)}
+.forsale,.side{min-width:0}
+.forsale .holdings{max-width:100%}
 .forsale .fs-count{margin:0 0 6px;font-size:.92rem}
-.forsale .holdings{border:1.5px solid var(--line);background:var(--sheet);padding:8px 10px}
+.forsale .holdings{display:flex;align-items:center;border:1.5px solid var(--line);background:var(--sheet);padding:10px 10px 12px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:3px;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:thin}
+.forsale .chip{flex:none;width:16px;height:26px}
+.forsale .chip.sp{margin-left:8px}
+.forsale .swipe{margin:4px 0 0;font-size:.8rem;color:var(--muted)}
 .mono-banner{position:absolute;left:50%;top:48%;z-index:30;pointer-events:none;background:var(--g);color:var(--gt);border:.5cqi solid #fff;outline:.35cqi solid var(--line);padding:2.2cqi 5cqi;text-align:center;box-shadow:1cqi 1cqi 0 rgba(14,42,79,.35);transform:translate(-50%,-50%) rotate(-2deg);font-family:var(--cond);font-stretch:condensed}
 .mono-banner strong{display:block;font-size:9cqi;line-height:.95;letter-spacing:-.02em;font-weight:800}
 .mono-banner span{display:block;font-size:2.5cqi;margin-top:.8cqi;font-weight:600}
@@ -1477,8 +1482,10 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.4.1';
 const RELEASES = [
+  {version:'2.4.1', date:'2026-11-26', title:'Scrollable Still for sale', changes:[
+    'The Still for sale row is now a single line you can swipe or scroll sideways, with larger tiles that are easier to tap.']},
   {version:'2.4.0', date:'2026-11-25', title:'Monopolies, mortgages and a better trade screen', changes:[
     'The pass-the-device screen is gone. A short note now names whose turn it is.',
     'Completing a color set now sets off a celebration: the set lights up, confetti flies and a banner names the owner.',
@@ -2070,7 +2077,8 @@ function renderForSale(s){
     rest.forEach((i,k)=>chips.push(`<button class="chip ${k===0&&!first?'sp':''}" style="--g:${st.color}" data-ui="deed" data-i="${i}" title="${esc(BOARD[i].name)}, ${money(BOARD[i].price)}" aria-label="${esc(BOARD[i].name)}, for sale"></button>`));
     first = false;
   }
-  el.innerHTML = `<h2 id="fs-h">Still for sale</h2><p class="fs-count"><strong>${free.length}</strong> of ${OWNABLE.length} properties ${free.length===1?'has':'have'} no owner.</p>${free.length?`<div class="holdings">${chips.join('')}</div>`:'<p class="hint">Every property has an owner.</p>'}`;
+  el.innerHTML = `<h2 id="fs-h">Still for sale</h2><p class="fs-count"><strong>${free.length}</strong> of ${OWNABLE.length} properties ${free.length===1?'has':'have'} no owner.</p>${free.length?`<div class="holdings" id="fs-row" tabindex="0" role="group" aria-label="Properties for sale. Scroll sideways to see all.">${chips.join('')}</div><p class="swipe" id="fs-swipe" hidden>Swipe or scroll sideways to see them all.</p>`:'<p class="hint">Every property has an owner.</p>'}`;
+  const row = $('#fs-row'); if(row && row.scrollWidth>row.clientWidth+2) $('#fs-swipe').hidden = false;
 }
 /* Holdings, grouped by set. Missing pieces of a started set show as dashed outlines. */
 function holdingsHTML(s, pi){
