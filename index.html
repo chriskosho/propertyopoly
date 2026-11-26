@@ -103,12 +103,13 @@ button,input,select{font:inherit;color:inherit}
 .picks{display:flex;flex-wrap:wrap;gap:6px}
 .pick{position:relative}
 .pick input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
-.pick .disc{width:34px;height:34px;cursor:pointer}
+.pick .disc{cursor:pointer}
 .pick .sw{display:block;width:26px;height:26px;border-radius:50%;background:var(--pc);border:2px solid var(--sheet);box-shadow:0 0 0 1.5px var(--line);cursor:pointer}
 .pick input:checked+.disc,.pick input:checked+.sw{box-shadow:0 0 0 2px var(--sheet),0 0 0 4.5px var(--red)}
 .pick input:focus-visible+*{outline:3px solid var(--red);outline-offset:3px}
-.tok-picks .disc{background:var(--line-soft);color:var(--ink)}
-.tok-picks input:checked+.disc{background:var(--pc);color:#fff}
+.tok-picks .disc{background:var(--line-soft)}
+.tok-picks input:checked+.disc{background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--pc) 45%,#fff) 0,var(--pc) 46%,color-mix(in srgb,var(--pc) 62%,#000) 100%)}
+.pick .disc{width:40px;height:40px}
 .setup-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;border-top:1px solid var(--line-soft);padding-top:18px}
 .check{display:flex;gap:.5em;align-items:center;font-size:1rem;cursor:pointer}
 .check input{width:1.1em;height:1.1em;accent-color:var(--red)}
@@ -203,8 +204,18 @@ button,input,select{font:inherit;color:inherit}
 .tok{position:absolute;left:0;top:0;width:var(--ts,20px);height:var(--ts,20px);transition:transform 130ms ease-out;will-change:transform}
 .tok.cur{z-index:2}
 .tok.jailed .disc::after{content:"";position:absolute;inset:-8%;border-radius:50%;background:repeating-linear-gradient(90deg,transparent 0 22%,rgba(0,0,0,.55) 22% 30%)}
-.disc{position:relative;display:inline-grid;place-items:center;border-radius:50%;background:var(--pc);color:#fff;box-shadow:0 0 0 1.5px var(--sheet),0 0 0 2.6px var(--line)}
-.disc svg{width:64%;height:64%;fill:currentColor}
+.disc{position:relative;display:inline-grid;place-items:center;border-radius:50%;color:#fff;
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--pc) 45%,#fff) 0,var(--pc) 46%,color-mix(in srgb,var(--pc) 62%,#000) 100%);
+  box-shadow:0 0 0 1.5px var(--sheet),0 0 0 2.6px var(--line),inset 0 -2px 3px rgba(0,0,0,.3)}
+.disc svg{width:88%;height:88%;overflow:visible}
+/* metal miniatures */
+.tk path,.tk circle,.tk ellipse{fill:url(#tok-metal);stroke:#1d2229;stroke-width:.9;stroke-linejoin:round;stroke-linecap:round}
+.tk .d{fill:url(#tok-dark)}
+.tk .cy{fill:url(#tok-turned)}
+.tk .cy2{fill:url(#tok-turned2)}
+.tk .hi{fill:#fff;opacity:.75;stroke:none}
+.tk .no{stroke:none}
+.tk path[fill=none]{fill:none}
 .tok .disc{width:100%;height:100%}
 .tok.cur .disc{box-shadow:0 0 0 1.5px var(--sheet),0 0 0 3.5px var(--red)}
 #ring{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:2}
@@ -548,6 +559,14 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
   </aside>
 </main>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <linearGradient id="tok-metal" gradientUnits="userSpaceOnUse" x1="8" y1="4" x2="40" y2="44"><stop offset="0" stop-color="#fdfeff"/><stop offset=".3" stop-color="#d3d8de"/><stop offset=".65" stop-color="#8c949e"/><stop offset="1" stop-color="#4a515a"/></linearGradient>
+  <linearGradient id="tok-dark" gradientUnits="userSpaceOnUse" x1="8" y1="4" x2="40" y2="44"><stop offset="0" stop-color="#a9b0b9"/><stop offset="1" stop-color="#3b4149"/></linearGradient>
+  <linearGradient id="tok-turned" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5d646e"/><stop offset=".22" stop-color="#e9edf1"/><stop offset=".34" stop-color="#fff"/><stop offset=".62" stop-color="#a4acb6"/><stop offset="1" stop-color="#454c55"/></linearGradient>
+  <linearGradient id="tok-turned2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9edf1"/><stop offset=".25" stop-color="#fff"/><stop offset=".6" stop-color="#9aa2ac"/><stop offset="1" stop-color="#454c55"/></linearGradient>
+  <radialGradient id="tok-shadow"><stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  <filter id="tok-drop" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx=".6" dy="1.2" stdDeviation=".8" flood-color="#000" flood-opacity=".45"/></filter>
+</defs></svg>
 <dialog id="modal" aria-labelledby="modal-title"><div class="mb" id="modal-body"></div></dialog>
 <dialog id="whatsnew" aria-labelledby="wn-title"><div class="mb" id="wn-body"></div></dialog>
 <input type="file" id="file-in" accept="application/json,.json" hidden>
@@ -1385,17 +1404,23 @@ function botWouldAccept(s, t){
 /* =====================================================================
    5. UI STATE, SOUND AND PERSISTENCE
    ===================================================================== */
+/* Tokens: side-on pewter miniatures in a 48x48 box, standing on y≈40. Unclassed shapes take the
+   main metal finish; .d is darker metal, .cy and .cy2 are turned (cylindrical) metal, .hi is a highlight. */
 const TOKENS = {
-  hat:{label:'Top hat', svg:'<path d="M7 3h10v12H7z"/><path d="M2.5 15h19v3.4h-19z"/><path d="M7 11.6h10v1.8H7z" fill-opacity=".45"/>'},
-  car:{label:'Race car', svg:'<path d="M1.5 16v-3.2l3.2-1.1L7.4 8h7.4l3.4 3.6 4.3 1V16z"/><circle cx="6.6" cy="16.6" r="2.4"/><circle cx="17.2" cy="16.6" r="2.4"/><path d="M8.6 9.6h5.2l2 2H8z" fill-opacity=".45"/>'},
-  ship:{label:'Battleship', svg:'<path d="M1.5 14h21l-3.4 5.4H5z"/><path d="M6 14v-3.6h11V14z"/><path d="M8.2 10.4V7.2h3v3.2zM13 10.4V4.6h2.6v5.8z"/>'},
-  boot:{label:'Boot', svg:'<path d="M6.5 2.5h7v9.4l5.6 3c1.7.9 2.4 2.2 2.4 3.9H3.5V15l3-3.4z"/><path d="M3.5 17h18v1.8h-18z" fill-opacity=".45"/>'},
-  thimble:{label:'Thimble', svg:'<path d="M7 19.5h10l-1.3-10.7C15.3 5.6 13.8 3.5 12 3.5S8.7 5.6 8.3 8.8z"/><path d="M5.8 17.6h12.4v3H5.8z"/><path d="M9.5 9h5v1.4h-5zM9 12.2h6v1.4H9z" fill-opacity=".45"/>'},
-  iron:{label:'Iron', svg:'<path d="M2.5 18c0-5.3 4.2-9.4 10.4-9.4h6.4L21.5 18z"/><path d="M8.5 8.6V6.4c0-1.4 1.1-2.4 2.6-2.4h7.2v4.6h-2V6h-5.4c-.3 0-.4.2-.4.4v2.2z"/>'},
-  barrow:{label:'Wheelbarrow', svg:'<path d="M3.5 7.5h14l-3.2 7.6H7.4z"/><circle cx="16" cy="18.2" r="2.6"/><path d="M14.8 15.4l4-7.2 3.2-.6.3 1.5-2.4.5-3.6 6.5zM7.4 15.1l-1 5h1.6l1-5z"/>'},
-  cat:{label:'Cat', svg:'<path d="M4.5 20.5v-9L3.5 3.5l4.8 3.8h7.4l4.8-3.8-1 8v9z"/><circle cx="9.3" cy="12.4" r="1.3" fill-opacity=".45"/><circle cx="14.7" cy="12.4" r="1.3" fill-opacity=".45"/>'},
-  duck:{label:'Rubber duck', svg:'<circle cx="9" cy="8" r="4.3"/><path d="M12.8 7.3l4.6 1.3-4.6 1.7z"/><path d="M2.5 15.2c0-3.3 2.7-4.4 6.4-4.4h4.4c4.3 0 7.4 1.2 8.4 4.3-1.1 3.8-5.4 5.4-10.7 5.4-5.1 0-8.5-1.8-8.5-5.3z"/>'},
-  penguin:{label:'Penguin', svg:'<ellipse cx="12" cy="12.6" rx="6.6" ry="8.6"/><ellipse cx="12" cy="14.6" rx="3.9" ry="5.6" fill-opacity=".45"/><path d="M8 21h3v1.3H7.4zM13 21h3l.6 1.3H13z"/>'},
+  hat:{label:"Top hat", svg:"<path class=\"cy\" d=\"M14 34.5 L15.6 11.2 Q24 8.6 32.4 11.2 L34 34.5 Z\"/><path class=\"d\" d=\"M14.5 28 L33.5 28 L33.9 33.6 L14.1 33.6 Z\"/><ellipse cx=\"24\" cy=\"11\" rx=\"8.4\" ry=\"2.4\" class=\"d\"/><path d=\"M4.5 36.2 Q24 30.4 43.5 36.2 Q24 42.2 4.5 36.2 Z\"/><path class=\"hi\" d=\"M9 36 Q24 32.6 39 36 Q24 34.4 9 36 Z\"/>"},
+  car:{label:"Race car", svg:"<circle cx=\"12\" cy=\"32.6\" r=\"5.6\" class=\"d\"/><circle cx=\"36.4\" cy=\"32.6\" r=\"5.6\" class=\"d\"/><path class=\"no\" d=\"M12 27.4 V37.8 M6.8 32.6 H17.2 M36.4 27.4 V37.8 M31.2 32.6 H41.6\" fill=\"none\" stroke=\"#20252c\" stroke-width=\".8\"/><circle cx=\"12\" cy=\"32.6\" r=\"1.8\"/><circle cx=\"36.4\" cy=\"32.6\" r=\"1.8\"/><path d=\"M3.6 28.6 Q3.4 25.4 6.4 24.6 L16 23.4 L17.6 20 L20.4 20 L21.2 23 L30 23 Q38.4 22.6 43 24.6 Q45.8 26 45.2 28.6 Q44.8 30 42.6 30 L42.4 29.4 Q40.6 26.4 36.4 26.4 Q32.2 26.4 30.6 29.6 L17.8 29.6 Q16.2 26.4 12 26.4 Q7.8 26.4 6.4 29.6 L4.8 29.6 Q3.7 29.4 3.6 28.6 Z\"/><circle cx=\"24\" cy=\"18.6\" r=\"2.4\"/><path class=\"d\" d=\"M21.6 21.4 Q24 19.8 26.6 21.4 L26.6 23 L21.6 23 Z\"/><path class=\"d no\" d=\"M28.4 22.6 L30.2 18.6\" fill=\"none\" stroke=\"#20252c\" stroke-width=\"1.3\"/><path class=\"hi\" d=\"M6.8 25.8 L15.4 24.8 L15.4 25.8 L7 26.8 Z\"/><path class=\"hi\" d=\"M30.6 24.2 Q37 23.8 41.6 25.2 L41.4 26 Q37 25 30.6 25.2 Z\"/>"},
+  ship:{label:"Battleship", svg:"<path d=\"M2.5 29.5 L45.5 29.5 L41 37.5 L8 37.5 Z\"/><path class=\"d\" d=\"M15 29.5 L15 24 L33 24 L33 29.5 Z\"/><path d=\"M19 24 L19 18.5 L29 18.5 L29 24 Z\"/><path class=\"d\" d=\"M23 18.5 L23 8 L25 8 L25 18.5 Z\"/><path class=\"d\" d=\"M20.5 11.5 L27.5 11.5 L27.5 13 L20.5 13 Z\"/><path d=\"M7 29.5 L7 26.3 L12.5 26.3 L12.5 29.5 Z\"/><path class=\"d\" d=\"M12 27.2 L17 26 L17 27 L12 28.2 Z\"/><path d=\"M35.5 29.5 L35.5 26.3 L41 26.3 L41 29.5 Z\"/><path class=\"d\" d=\"M36 27.2 L31 26 L31 27 L36 28.2 Z\"/><path class=\"hi\" d=\"M6 31 L42.5 31 L42 32.2 L6.6 32.2 Z\"/>"},
+  boot:{label:"Boot", svg:"<path class=\"cy\" d=\"M13.5 7 L29 7 L29 25.5 Q33 27.5 39.5 28.8 Q45 30 45 35.5 L45 38.5 L12.5 38.5 L12.5 33 Q12.6 20 13.5 7 Z\"/><path class=\"d\" d=\"M12.5 35.5 L45 35.5 L45 38.5 L12.5 38.5 Z\"/><path class=\"d\" d=\"M13 7 L29.4 7 L29.4 10 L13.1 10 Z\"/><path class=\"no\" d=\"M29 14 L22.5 15.5 M29 18 L22.5 19.5 M29 22 L23 23.5\" fill=\"none\" stroke=\"#20252c\" stroke-width=\"1.1\"/><path class=\"hi\" d=\"M31 28 Q38 29.6 42 31.4 L41.4 32.4 Q37 30.8 30.6 29.2 Z\"/>"},
+  thimble:{label:"Thimble", svg:"<path class=\"cy\" d=\"M13.5 39 L15.5 13.5 Q16.2 8.4 24 8.4 Q31.8 8.4 32.5 13.5 L34.5 39 Z\"/><path class=\"d\" d=\"M13.7 34.5 L34.3 34.5 L34.6 39 L13.4 39 Z\"/><g class=\"d no\"><circle cx=\"17.40\" cy=\"14.0\" r=\"1.05\"/><circle cx=\"20.70\" cy=\"14.0\" r=\"1.05\"/><circle cx=\"24.00\" cy=\"14.0\" r=\"1.05\"/><circle cx=\"27.30\" cy=\"14.0\" r=\"1.05\"/><circle cx=\"30.60\" cy=\"14.0\" r=\"1.05\"/><circle cx=\"19.05\" cy=\"18.2\" r=\"1.05\"/><circle cx=\"22.35\" cy=\"18.2\" r=\"1.05\"/><circle cx=\"25.65\" cy=\"18.2\" r=\"1.05\"/><circle cx=\"28.95\" cy=\"18.2\" r=\"1.05\"/><circle cx=\"17.40\" cy=\"22.4\" r=\"1.05\"/><circle cx=\"20.70\" cy=\"22.4\" r=\"1.05\"/><circle cx=\"24.00\" cy=\"22.4\" r=\"1.05\"/><circle cx=\"27.30\" cy=\"22.4\" r=\"1.05\"/><circle cx=\"30.60\" cy=\"22.4\" r=\"1.05\"/><circle cx=\"19.05\" cy=\"26.6\" r=\"1.05\"/><circle cx=\"22.35\" cy=\"26.6\" r=\"1.05\"/><circle cx=\"25.65\" cy=\"26.6\" r=\"1.05\"/><circle cx=\"28.95\" cy=\"26.6\" r=\"1.05\"/><circle cx=\"17.40\" cy=\"30.8\" r=\"1.05\"/><circle cx=\"20.70\" cy=\"30.8\" r=\"1.05\"/><circle cx=\"24.00\" cy=\"30.8\" r=\"1.05\"/><circle cx=\"27.30\" cy=\"30.8\" r=\"1.05\"/><circle cx=\"30.60\" cy=\"30.8\" r=\"1.05\"/></g>"},
+  iron:{label:"Iron", svg:"<path d=\"M3.5 37.5 L41.5 37.5 Q46 37.5 44.5 31.5 L10 31.5 Q4.5 32.5 3.5 37.5 Z\" class=\"d\"/><path d=\"M8.5 31.5 Q11 21.5 25 20.5 L38.5 20.5 Q43 23 44 31.5 Z\"/><path d=\"M14 20.6 Q14 10.5 22 10.5 L36 10.5 Q39 10.5 38.6 14 L37.6 20.5 L33.6 20.5 L34.2 14.6 L23 14.6 Q18.6 14.6 18.4 20.6 Z\"/><path class=\"hi\" d=\"M13 29.5 Q16 23.5 25 22.6 L25.2 24 Q18 24.8 15 30 Z\"/><path class=\"hi\" d=\"M8 35.6 L41 35.6 L40.6 36.4 L7.6 36.4 Z\"/>"},
+  barrow:{label:"Wheelbarrow", svg:"<path d=\"M6 16.5 L36 16.5 L31.5 28.5 L12.5 28.5 Z\"/><path class=\"d\" d=\"M8.5 16.5 L33.5 16.5 L33 18.2 L9.2 18.2 Z\"/><path class=\"d\" d=\"M30 22 L44.5 14.5 L45.5 16.4 L31.5 24.6 Z\"/><path class=\"d\" d=\"M26 28.2 L24.5 38.5 L27 38.5 L28.6 28.2 Z\"/><circle cx=\"12\" cy=\"33\" r=\"6.2\" class=\"d\"/><circle cx=\"12\" cy=\"33\" r=\"2.4\"/><path class=\"hi\" d=\"M10 18.8 L33 18.8 L32.6 20 L10.5 20 Z\"/>"},
+  cat:{label:"Cat", svg:"<path d=\"M15 39 Q11 27 17 20 L17.2 13.5 L13.8 6.5 L19.2 10 Q22 9 25 10 L30.2 6.5 L28.4 13.6 Q30.6 18 28.4 21.5 Q35 26 34 33 Q33.5 39 27 39 Z\"/><path class=\"d\" d=\"M33.5 35.5 Q42 37.5 43.5 30 Q44.5 25.5 41 24 Q42.5 29.5 39.5 33 Q37 35 33.8 33.2 Z\"/><path class=\"d no\" d=\"M18.6 15 l1.8 .6 M24 15 l1.8 -.6\" fill=\"none\" stroke=\"#20252c\" stroke-width=\"1.2\"/><path class=\"hi\" d=\"M18.2 24 Q16 30 17.6 36 L19.2 36 Q18 30 19.8 24.4 Z\"/>"},
+  duck:{label:"Rubber duck", svg:"<path d=\"M5 28.5 Q5 22.5 12 21.5 L17.5 21.4 Q11.5 17.5 13 11.8 Q15 5.5 22 6 Q29 7 29 14 Q29 18.5 25.5 21.2 L31.5 21.2 Q38 19.5 42.5 15.5 Q44.5 22.5 41.5 29.5 Q37.5 38.5 23 38.5 Q8 38.5 5 28.5 Z\"/><path class=\"d\" d=\"M28.3 12.2 L35.5 13.8 Q34.5 16.6 28.4 16 Z\"/><circle class=\"d no\" cx=\"23.4\" cy=\"11.6\" r=\"1.4\" stroke=\"none\"/><path class=\"d\" d=\"M14 27 Q20 33.5 30 29.5 Q24 30.5 19.5 26.5 Z\"/><path class=\"hi\" d=\"M16.5 10.5 Q18 7.8 21.4 7.8 L21.2 9.2 Q18.6 9.4 17.8 11.2 Z\"/><path class=\"hi\" d=\"M8.5 27 Q9 23.4 14 23 L14 24.3 Q10.6 24.6 10 27.4 Z\"/>"},
+  penguin:{label:"Penguin", svg:"<path d=\"M17 37.5 Q12.5 31 13.5 22 Q14.5 13 18 10 Q17.8 4.8 24 4.8 Q30.2 4.8 30 10 Q33.5 13 34.5 22 Q35.5 31 31 37.5 Z\"/><path class=\"hi no\" stroke=\"none\" d=\"M20.5 15 Q18.5 23 20 34.5 L28 34.5 Q29.5 23 27.5 15 Q24 12.5 20.5 15 Z\" opacity=\".35\"/><path class=\"d\" d=\"M24 8.6 L28.8 10.4 L24 11.6 Z\"/><circle class=\"d no\" stroke=\"none\" cx=\"22\" cy=\"8.4\" r=\"1\"/><path class=\"d\" d=\"M14 21 Q9.5 27 11 33 Q14 29 15.6 25 Z\"/><path class=\"d\" d=\"M34 21 Q38.5 27 37 33 Q34 29 32.4 25 Z\"/><path class=\"d\" d=\"M17 37 L22.8 37 L22.6 39.5 L15.5 39.5 Z M25.2 37 L31 37 L32.5 39.5 L25.4 39.5 Z\"/>"},
+  dog:{label:"Scottie dog", svg:"<path d=\"M10.4 38.6 L10.6 30.4 Q8.8 28.6 8.9 25 L8.9 21.8 Q5.2 21.4 3.6 18.2 L3.2 13.2 Q3.4 11 6 10.6 L7.8 10.4 L8.4 3.4 L11 7.6 L12.8 3.6 L14.6 9.8 Q16.4 15.6 20.6 18.6 L35.6 18.6 L39.2 11 L41 12 L40 20.4 Q43.2 23 42.4 30 L42 38.6 L38.6 38.6 L38 32.2 L32.2 32.2 L31.8 38.6 L28.6 38.6 L28 32 L17.6 32 L16.6 38.6 L13.4 38.6 L13.4 32.2 Q12 31.6 11.6 30.8 Z\"/><path class=\"d\" d=\"M3.6 17.4 Q5.4 21 8.9 21.8 L8.9 20.2 Q6 19.6 4.6 16.4 Z\"/><circle class=\"d\" cx=\"3.9\" cy=\"12.6\" r=\"1.3\"/><circle class=\"d no\" cx=\"9.8\" cy=\"12\" r=\"1\"/><path class=\"hi\" d=\"M20.6 20.4 L35 20.4 L35 21.6 L20.6 21.6 Z\"/><path class=\"hi\" d=\"M5 12.4 L9 11.8 L9 12.8 L5.2 13.4 Z\"/>"},
+  trex:{label:"T-rex", svg:"<path d=\"M5 39 L9.6 34.2 Q14 27.5 20 25.5 Q20.4 20 23.6 16.5 L21.2 14 Q19.4 11 20.6 8 Q23 4.6 30.5 4.6 L41.5 5.6 Q44.6 6.4 44.2 9.6 L43.6 13.4 L36 13.4 L36.4 15.4 L41.6 16.2 L41 18.4 L33.4 18.4 Q31.4 22 32.2 26 Q34.6 31.5 32 35 L33.8 38.6 L29.6 39 L28.4 35.6 Q25 37 21.4 36 L21.6 39 L17 39 L17.4 34.8 Q12.5 36.5 5 39 Z\"/><path class=\"d\" d=\"M33 18.4 Q36.6 21 37.6 24 L36.4 24.6 Q35 22 32.6 21 Z\"/><path class=\"no\" d=\"M36.4 13.4 L42.8 13.4\" fill=\"none\" stroke=\"#20252c\" stroke-width=\"1\"/><circle class=\"d no\" stroke=\"none\" cx=\"30.6\" cy=\"8.4\" r=\"1.2\"/><path class=\"hi\" d=\"M24 9 Q27 6.6 33 6.8 L33 8 Q28 8 25.2 10 Z\"/><path class=\"hi\" d=\"M22.4 27 Q25 22.6 28 21.6 L28.4 22.8 Q26 24 23.8 27.8 Z\"/>"},
+  horse:{label:"Horse and rider", svg:"<path d=\"M14 22 Q12.4 17 11.2 12.4 L8.6 15 Q5.6 16.8 4.6 15 Q4 13.4 6 11.6 L10.6 6.6 L11.4 4.4 L13 6.4 Q16.6 8.6 18.6 14 Q19.8 17.4 21.6 18.6 L33.6 18.6 Q39.6 18.8 40.2 24 Q40.4 28 38.6 30 L39 38.6 L36.2 38.6 L35.4 31 L33.2 31.4 L32.8 38.6 L30 38.6 L29.6 31.2 L20.2 31.2 L19.8 38.6 L17.2 38.6 L17 30.8 Q15.4 30 14.8 28.8 L13.6 38.6 L11 38.6 L12.6 27 Q12.4 24.6 14 22 Z\"/><path class=\"d\" d=\"M13 6.4 Q17.4 9.4 19.6 16.6 L17.8 17 Q16 11 12.2 8 Z\"/><path class=\"d\" d=\"M39.8 21 Q45.2 23 44.8 34.4 Q42.6 29.2 39.8 27.6 Z\"/><path class=\"d\" d=\"M24.6 18.8 L26.4 27.2 L29 26.8 L28.2 18.8 Z\"/><path d=\"M23.2 19 L24.4 10.6 Q26.6 9.6 29 10.6 L30.2 19 Z\"/><path class=\"d\" d=\"M25 12.4 L19.6 16 L20.4 17.2 L25.6 14.2 Z\"/><circle cx=\"26.8\" cy=\"7.2\" r=\"2.8\"/><path class=\"hi\" d=\"M21.6 20.4 L33.6 20.4 L33.6 21.6 L21.8 21.6 Z\"/>"},
+  cannon:{label:"Cannon", svg:"<path class=\"cy2\" d=\"M8 21 L38.6 12.4 Q42.6 11.6 43.4 15 Q44 18.2 40.8 19.4 L11 30 Q7.4 30.8 6.4 27 Q5.6 22.6 8 21 Z\"/><path class=\"d\" d=\"M38.4 12.6 L41 11.8 Q45 11.2 45.6 15.2 Q46 18.6 42.2 19.6 L40 20.2 Q43 18.4 42.4 15.2 Q41.6 12.6 38.4 12.6 Z\"/><circle cx=\"6.8\" cy=\"25.4\" r=\"2.6\" class=\"d\"/><path class=\"d\" d=\"M14 27.5 L31 21.5 L36.5 37.5 L10 37.5 Z\"/><circle cx=\"21\" cy=\"32\" r=\"6.6\"/><circle cx=\"21\" cy=\"32\" r=\"2.2\" class=\"d\"/><path class=\"no\" d=\"M21 25.4 V38.6 M14.4 32 H27.6 M16.3 27.3 L25.7 36.7 M25.7 27.3 L16.3 36.7\" fill=\"none\" stroke=\"#20252c\" stroke-width=\".9\"/><path class=\"hi\" d=\"M11 22.2 L37 14.8 L37.4 16 L11.6 23.6 Z\"/>"},
 };
 const COLORS = [
   {name:'Scarlet', hex:'#D7263D'}, {name:'Tangerine', hex:'#EE7B00'}, {name:'Mustard', hex:'#C99700'},
@@ -1410,8 +1435,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.1.1';
+const APP_VERSION = '2.2.0';
 const RELEASES = [
+  {version:'2.2.0', date:'2026-11-25', title:'New tokens', changes:[
+    'Every token is redrawn as a shaded metal miniature standing on your color.',
+    'Four new tokens: the Scottie dog, the T-rex, the horse and rider, and the cannon. There are now 14 to choose from.']},
   {version:'2.1.1', date:'2026-11-25', title:'Animation setting', changes:[
     'Animations now have a setting in the Game menu: Match device, On or Off. If your device asks for reduced motion, the game used to skip every animation without saying so. You’ll now get a notice, and you can turn them on.',
     'Tokens hop higher between spaces.']},
@@ -1757,7 +1785,7 @@ function buildBoard(){
      <div class="tokens" id="tokens"></div>`;
   $('#tokens').innerHTML = ui.state.players.map(p=>`<div class="tok" data-p="${p.id}" style="--pc:${p.color}">${tokenDisc(p)}</div>`).join('');
 }
-function tokenSVG(t){ return `<svg viewBox="0 0 24 24" aria-hidden="true">${TOKENS[t].svg}</svg>`; }
+function tokenSVG(t){ return `<svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="24" cy="39.5" rx="17" ry="3" fill="url(#tok-shadow)"/><g class="tk" filter="url(#tok-drop)">${(TOKENS[t]||TOKENS.hat).svg}</g></svg>`; }
 function tokenDisc(p){ return `<span class="disc" style="--pc:${p.color}" role="img" aria-label="${esc(p.name)}, ${esc(TOKENS[p.token].label)}">${tokenSVG(p.token)}</span>`; }
 const PIPS = {1:['2/2'],2:['1/1','3/3'],3:['1/1','2/2','3/3'],4:['1/1','1/3','3/1','3/3'],5:['1/1','1/3','2/2','3/1','3/3'],6:['1/1','2/1','3/1','1/3','2/3','3/3']};
 const pips = v => PIPS[v].map(a=>`<i style="grid-area:${a}"></i>`).join('');
