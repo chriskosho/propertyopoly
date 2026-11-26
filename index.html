@@ -299,6 +299,11 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .tshadow{position:absolute;left:10%;top:10%;width:80%;height:80%;border-radius:20%;background:#000;filter:blur(9px)}
 .throw-tip{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);top:calc(64px + env(safe-area-inset-top));margin:0;padding:8px 14px;border-radius:999px;background:#13243D;text-align:center;color:#fff;font-weight:600;font-size:1rem;pointer-events:none}
 .throw-cancel,#throw .throw-cancel{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;background:#fff;color:#13243D;border-color:#fff}
+.theme-picks{clear:both;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.theme-card{position:relative;display:block;cursor:pointer}.theme-card input{position:absolute;opacity:0;inset:0}
+.theme-card span{display:block;border:1.5px solid var(--line);background:var(--sheet);padding:9px 11px;border-radius:4px}
+.theme-card b{display:block}.theme-card small{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+.theme-card input:checked+span{border-color:var(--red);box-shadow:inset 0 0 0 1.5px var(--red)}.theme-card input:focus-visible+span{outline:3px solid var(--red);outline-offset:2px}
 .deed-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 6px}.deed-nav span{min-width:5.5em;text-align:center;color:var(--muted)}.deed-tip{text-align:center;margin:0 0 8px;font-size:.8rem}
 .deed{background:var(--card);color:var(--card-ink);border:1.5px solid var(--card-ink);width:min(270px,100%);margin:4px auto 12px;font-family:var(--cond);font-stretch:condensed;padding:8px}
 .deed .hd{background:var(--g,#fff);border:1.5px solid var(--card-ink);padding:9px 8px;text-align:center;color:var(--gt,#13243D)}
@@ -582,6 +587,7 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
       <h2>New game</h2>
       <div class="count" role="radiogroup" aria-label="Number of players" id="count"></div>
       <div id="prows"></div>
+      <fieldset class="rules themes" id="themes"><legend>Theme</legend><div class="theme-picks" role="radiogroup" aria-label="Theme" id="theme-picks"></div></fieldset>
       <fieldset class="rules" id="rules">
         <legend>House rules</legend>
         <p class="note">Leave these off to play by the official rules.</p>
@@ -750,7 +756,57 @@ const CHEST = [
   {text:'You inherit $100.', fx:{collect:100}},
 ];
 const deckOf = k => k==='chance' ? CHANCE : CHEST;
-const deckName = k => k==='chance' ? 'Chance' : 'Community Chest';
+/* Themes change names and card wording only. Prices, rents, rules and card effects stay the same.
+   The names below replace the Classic ones in board order. */
+const THEME_BASE = {names:BOARD.map(s=>s.name), chance:CHANCE.map(c=>c.text), chest:CHEST.map(c=>c.text)};
+const PROP_IDX = BOARD.map((s,i)=>s.type==='prop'?i:-1).filter(i=>i>=0), TAX_IDX = BOARD.map((s,i)=>s.type==='tax'?i:-1).filter(i=>i>=0);
+const THEMES = {
+  classic:{label:'Classic', sub:'Hot-seat edition', blurb:'Mediterranean Avenue to Boardwalk', decks:{chance:'Chance', chest:'Community Chest'}},
+  texas:{label:'Texas', sub:'★ Texas edition ★', blurb:'Marfa, Galveston, Houston, Austin',
+    props:['Marfa','Pecos','Port Aransas','Galveston','South Padre Island','Waco','Abilene','Lubbock','Amarillo','Corpus Christi','El Paso','Arlington','Plano','Frisco','New Braunfels','Kerrville','Round Rock','Dallas','Fort Worth','San Antonio','Houston','Austin'],
+    rails:['Texas Central','Gulf Coast Line','Panhandle Express','Lone Star Limited'], utils:['Hill Country Electric','Rio Grande Water'], taxes:['Property Tax','Boot Tax'],
+    decks:{chance:'Lone Star', chest:'Town Square'},
+    chance:['Advance to Austin, the state capital.','Head back to the ranch. Advance to Go. Collect $200.','Advance to Frisco. If you pass Go, collect $200.','Advance to Waco. If you pass Go, collect $200.',
+      'Hop the next train. Advance to the nearest railroad. If it is unowned, you may buy it. If it is owned, pay the owner twice the usual rent.','Hop the next train. Advance to the nearest railroad. If it is unowned, you may buy it. If it is owned, pay the owner twice the usual rent.',
+      'Advance to the nearest utility. If it is unowned, you may buy it. If it is owned, roll the dice and pay the owner ten times the total.','Oil royalties arrive. Collect $50.',
+      'A friendly sheriff owes you a favor. Get out of jail free. Keep this card until you need it, or trade it.','Your horse spooks. Go back three spaces.',
+      'Caught speeding in a small town. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.','Storm damage. Make repairs on all your property. Pay $25 for each house and $100 for each hotel.',
+      'Speeding ticket on the interstate. Pay $15.','Take a trip on Texas Central. If you pass Go, collect $200.','You host the big rodeo party. Pay each player $50.','Your cattle sale closes. Collect $150.'],
+    chest:['Head home to the ranch. Advance to Go. Collect $200.','A long-lost oil lease pays out. Collect $200.','Vet bill for the ranch dog. Pay $50.','You win the chili cook-off. Collect $50.',
+      'A friendly sheriff owes you a favor. Get out of jail free. Keep this card until you need it, or trade it.','Caught speeding in a small town. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.',
+      'Your rodeo prize money arrives. Receive $100.','Tax refund. Collect $20.','Family reunion potluck at your place. Collect $10 from every player.','A pecan orchard pays off. Collect $100.',
+      'Pay $100 to fix the pickup truck.','Pay $50 for football tickets.','Receive $25 for giving tours at the Alamo.','Flood damage to your property. Pay $40 per house and $115 per hotel.',
+      'You place second at the county fair. Collect $10.','A distant cousin leaves you a ranch. You inherit $100.']},
+  usa:{label:'United States', sub:'United States edition', blurb:'Fargo, Denver, Chicago, New York City',
+    props:['Fargo','Boise','Salt Lake City','Albuquerque','Nashville','Denver','Kansas City','Minneapolis','Philadelphia','Atlanta','Miami','Phoenix','Las Vegas','Seattle','Portland','New Orleans','San Diego','Boston','Washington, D.C.','Chicago','Los Angeles','New York City'],
+    rails:['Cross-Country Railroad','Pacific Express','Atlantic Limited','Heartland Rail'], utils:['Hoover Dam','Great Lakes Water'], taxes:['Income Tax','Luxury Tax'],
+    decks:{chance:'Road Trip', chest:'Town Hall'},
+    chance:['Advance to New York City.','Back to the starting line. Advance to Go. Collect $200.','Advance to Seattle. If you pass Go, collect $200.','Advance to Denver. If you pass Go, collect $200.',
+      'Hop on the next train. Advance to the nearest railroad. If it is unowned, you may buy it. If it is owned, pay the owner twice the usual rent.','Hop on the next train. Advance to the nearest railroad. If it is unowned, you may buy it. If it is owned, pay the owner twice the usual rent.',
+      'Advance to the nearest utility. If it is unowned, you may buy it. If it is owned, roll the dice and pay the owner ten times the total.','The stock market has a good day. Collect $50.',
+      'A pardon from the governor. Get out of jail free. Keep this card until you need it, or trade it.','Detour! Go back three spaces.',
+      'Pulled over on the interstate. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.','Hurricane season. Make repairs on all your property. Pay $25 for each house and $100 for each hotel.',
+      'Parking ticket downtown. Pay $15.','Take a trip on the Cross-Country Railroad. If you pass Go, collect $200.','You host the Fourth of July parade. Pay each player $50.','Your small business loan pays off. Collect $150.'],
+    chest:['Head home. Advance to Go. Collect $200.','You win the state lottery. Collect $200.','Doctor’s fee. Pay $50.','You sell some stock. Collect $50.',
+      'A friendly judge dismisses your case. Get out of jail free. Keep this card until you need it, or trade it.','Pulled over on the interstate. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.',
+      'Your holiday bonus arrives. Receive $100.','Income tax refund. Collect $20.','Block party! Collect $10 from every player.','Your pension pays out. Collect $100.',
+      'Pay $100 for emergency room fees.','Pay $50 for college textbooks.','Receive a $25 consulting fee.','Storm cleanup. Pay $40 per house and $115 per hotel.',
+      'You win second place at the state fair. Collect $10.','You inherit $100.']},
+};
+let THEME_ID = 'classic';
+const themeOf = id => THEMES[id] ? id : 'classic';
+function useTheme(id){
+  THEME_ID = themeOf(id); const T = THEMES[THEME_ID];
+  BOARD.forEach((sp,i)=>{ sp.name = THEME_BASE.names[i]; });
+  if(T.props) PROP_IDX.forEach((bi,k)=>{ BOARD[bi].name = T.props[k]; });
+  if(T.rails) RAILS.forEach((bi,k)=>{ BOARD[bi].name = T.rails[k]; });
+  if(T.utils) UTILS.forEach((bi,k)=>{ BOARD[bi].name = T.utils[k]; });
+  if(T.taxes) TAX_IDX.forEach((bi,k)=>{ BOARD[bi].name = T.taxes[k]; });
+  BOARD.forEach(sp=>{ if(sp.type==='chance'||sp.type==='chest') sp.name = T.decks[sp.type]; });
+  CHANCE.forEach((c,k)=>{ c.text = T.chance ? T.chance[k] : THEME_BASE.chance[k]; });
+  CHEST.forEach((c,k)=>{ c.text = T.chest ? T.chest[k] : THEME_BASE.chest[k]; });
+}
+const deckName = k => THEMES[THEME_ID].decks[k];
 const GOOJF_ID = {chance:CHANCE.findIndex(c=>c.fx.goojf), chest:CHEST.findIndex(c=>c.fx.goojf)};
 
 /* =====================================================================
@@ -789,7 +845,7 @@ const blankStats = () => ({rentPaid:0, rentGot:0, bigRent:null, jail:0, bought:0
 function newGame(cfg){
   const s = {v:1, seed:cfg.seed>>>0, rng:cfg.seed>>>0, turnNo:1, cur:0, first:0, round:1, phase:'start', doubles:0, dice:null,
     players:[], props:{}, bank:{houses:32, hotels:12}, decks:{}, pending:null, queue:[], debts:[], log:[], winner:null, fx:[],
-    rules:{...DEFAULT_RULES, ...(cfg.rules||{})}, pot:0, playMs:0, worth:[], stats:[], endReason:null};
+    rules:{...DEFAULT_RULES, ...(cfg.rules||{})}, theme:themeOf(cfg.theme), pot:0, playMs:0, worth:[], stats:[], endReason:null};
   const ps = cfg.players.map(p=>({...p}));
   if(cfg.shuffleOrder) shuffle(s, ps);
   s.players = ps.map((p,i)=>({id:i, name:p.name, token:p.token, color:p.color, bot:!!p.bot, cash:START_CASH, pos:0, inJail:false, jailTurns:0, cards:[], bankrupt:false, lastOffer:null}));
@@ -811,7 +867,7 @@ function newGame(cfg){
 /* Saves from before Pass 2 lack the new fields. */
 function migrate(s){
   s.rules = {...DEFAULT_RULES, ...(s.rules||{})};
-  s.pot ??= 0; s.playMs ??= 0; s.round ??= 1; s.first ??= 0; s.endReason ??= null;
+  s.theme = themeOf(s.theme); s.pot ??= 0; s.playMs ??= 0; s.round ??= 1; s.first ??= 0; s.endReason ??= null;
   s.players.forEach(p=>{ p.bot = !!p.bot; p.lastOffer ??= null; });
   if(!Array.isArray(s.stats) || s.stats.length!==s.players.length) s.stats = s.players.map(blankStats);
   if(!Array.isArray(s.worth) || !s.worth.length) s.worth = [s.players.map(p=>p.bankrupt?0:netWorth(s, p.id))];
@@ -1108,6 +1164,7 @@ function goBankrupt(s, pi){
    3. REDUCER: (state, action) -> new state. Never mutates the input.
    ===================================================================== */
 const HANDLERS = {
+  SET_THEME(s, a){ need(THEMES[a.theme], 'Unknown theme.'); need(a.theme!==s.theme, 'That theme is already on.'); s.theme = a.theme; },
   /* Change a player's name, token or color. Everyone must stay distinct. */
   EDIT_PLAYER(s, a){
     const p = s.players[a.id]; need(p, 'No such player.');
@@ -1539,8 +1596,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.12.0';
+const APP_VERSION = '2.13.0';
 const RELEASES = [
+  {version:'2.13.0', date:'2026-11-26', title:'Texas and United States themes', changes:[
+    'Pick a theme on the new game screen, or switch any time in the Game menu: Classic, Texas or United States.',
+    'A theme renames the properties, railroads, utilities, taxes and card decks, and rewrites the Chance and Community Chest cards. Prices, rents and rules stay exactly the same.']},
   {version:'2.12.0', date:'2026-11-26', title:'Edit players', changes:[
     'Tap the pencil next to a player to change their name, token or color at any time. Undo works, and tokens and colors already in use are greyed out.']},
   {version:'2.11.0', date:'2026-11-26', title:'Build and Mortgage, money bag and play money', changes:[
@@ -2219,6 +2279,7 @@ function drawRing(i, animate){
 
 function render(){
   const s = ui.state; if(!s) return;
+  if(THEME_ID!==themeOf(s.theme)){ useTheme(s.theme); buildBoard(); }
   ui.displayPos = s.players.map(p=>p.pos);
   renderBoardMarks(s); renderCenter(s); renderPlayers(s); renderForSale(s); renderLog(s); updateToolbar();
   placeTokens(); drawRing(s.players[s.cur].pos, ui.lastRingPos!==s.players[s.cur].pos);
@@ -2318,7 +2379,7 @@ function renderCenter(s){
   const mortNote = mort.length ? `<p class="mortnote">You have ${mort.length} mortgaged ${mort.length===1?'property':'properties'}. Unmortgaging ${mort.length===1?'it costs':'them costs'} ${money(mort.reduce((n,i)=>n+unmortgageCost(i),0))}. <button class="btn small ghost" data-ui="mortgage">Open Mortgage</button></p>` : '';
   const d = s.dice || [1,1];
   $('#center').innerHTML = `
-    <div class="masthead"><span class="mark">Propertyopoly</span><span class="ed">Hot-seat edition</span></div>
+    <div class="masthead"><span class="mark">Propertyopoly</span><span class="ed">${esc(THEMES[THEME_ID].sub)}</span></div>
     <div class="turn">
       <div class="who">${tokenDisc(p)}<span class="who-name">${esc(p.name)}</span></div>
       <p class="status">${esc(status)}</p>${risk?`<p class="risk">${esc(risk)}</p>`:''}${mortNote}
@@ -2663,7 +2724,7 @@ function modalHTML(key){
     if(!OWNABLE.includes(i)){
       const what = {go: s.rules.doubleGo ? 'Collect $200 each time you pass Go, or $400 if you land on it.' : 'Collect $200 each time you land on or pass Go.', jail:'If you’re just visiting, nothing happens. In jail you can pay $50, use a card, or try for doubles up to three times.',
         parking: s.rules.parking ? `Land here to collect the pot of taxes, fines and card payments. It holds ${money(s.pot)} now.` : 'Nothing happens here. This game uses the official rules, so there’s no Free Parking jackpot.', gotojail:'Move straight to jail. You don’t pass Go or collect $200.',
-        chance:'Draw the top Chance card and follow it.', chest:'Draw the top Community Chest card and follow it.', tax:`Pay ${money(sp.amount||0)} to the bank.`}[sp.type];
+        chance:`Draw the top ${deckName('chance')} card and follow it.`, chest:`Draw the top ${deckName('chest')} card and follow it.`, tax:`Pay ${money(sp.amount||0)} to the bank.`}[sp.type];
       return `<h2 id="modal-title">${esc(sp.name)}</h2><p>${what}</p><div class="row-btns"><button class="btn" data-ui="close" autofocus>Close</button></div>`;
     }
     const L = ui.deedList, at = L ? L.indexOf(i) : -1;
@@ -2713,6 +2774,9 @@ function modalHTML(key){
       <h3>Appearance</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Theme">${[['light','Light'],['dark','Dark']].map(([v,l])=>`<button class="btn small ${ui.theme===v?'primary':''}" data-ui="theme" data-v="${v}" aria-pressed="${ui.theme===v}">${l}</button>`).join('')}</div>
       <p class="hint">Dark changes the screen around the board. The board itself stays white.</p>
+      <h3>Theme</h3>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Theme">${Object.entries(THEMES).map(([k,T])=>`<button class="btn small ${s.theme===k?'primary':''}" data-ui="gametheme" data-v="${k}" aria-pressed="${s.theme===k}">${esc(T.label)}</button>`).join('')}</div>
+      <p class="hint">Renames the board and cards. Prices and rules don’t change. Earlier entries in the game log keep their old names.</p>
       <h3>Dice rolling</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Dice rolling">${[['classic','Classic'],['immersive','Immersive']].map(([v,l])=>`<button class="btn small ${ui.rollStyle===v?'primary':''}" data-ui="rollstyle" data-v="${v}" aria-pressed="${ui.rollStyle===v}">${l}</button>`).join('')}</div>
       <p class="hint">Classic: tap Roll dice and they roll right away. Immersive: tap Roll dice to pick up the 3D dice, then flick or tap to throw them across the screen.</p>
@@ -2947,6 +3011,7 @@ document.addEventListener('keydown', e=>{
 function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
+    case 'gametheme': if(el.dataset.v!==s.theme) dispatch({type:'SET_THEME', theme:el.dataset.v}).then(()=>{ if(ui.userModal==='menu') syncModal(); toast(THEMES[ui.state.theme].label+' theme.'); }); break;
     case 'rollstyle': ui.rollStyle = el.dataset.v==='immersive' ? 'immersive' : 'classic'; LS.set(KEY_ROLL, ui.rollStyle); syncModal();
       if(ui.rollStyle==='immersive') toast(matchMedia('(pointer:coarse)').matches ? 'Immersive rolls on. Tap Roll dice, then flick or tap.' : 'Immersive rolls on. Click Roll dice, then flick or click.');
       else toast('Classic rolls on.'); break;
@@ -3045,7 +3110,7 @@ function startWithState(s, opts={}){
   ui.state = s; ui.history = []; ui.handoffSeen = opts.noHandoff ? s.turnNo : s.turnNo - 1; ui.overDismissed = false; ui.userModal = null; ui.modalKey = null; ui.lastRingPos = null; ui.tradeGate = null;
   ui.hl = null; ui.spin = opts.spin ? {} : null;
   $('#setup').hidden = true; $('#game').hidden = false;
-  buildBoard(); autosave(); render();
+  useTheme(s.theme); buildBoard(); autosave(); render();
 }
 
 /* =====================================================================
@@ -3059,7 +3124,7 @@ const setup = (()=>{
   const r = saved && saved.rules || {};
   return {count: saved && saved.count>=2 && saved.count<=8 ? saved.count : 4, players,
     rules:{parking:!!r.parking, doubleGo:!!r.doubleGo, noJailRent:!!r.noJailRent, auctionTimer:+r.auctionTimer||0, end:r.end||'official'},
-    spin: saved && saved.spin===false ? false : true};
+    spin: saved && saved.spin===false ? false : true, theme: themeOf(saved && saved.theme)};
 })();
 function renderSetup(){
   $('#count').innerHTML = [2,3,4,5,6,7,8].map(n=>`<label><input type="radio" name="count" value="${n}" ${n===setup.count?'checked':''} aria-label="${n} players"><span>${n}</span></label>`).join('');
@@ -3070,6 +3135,9 @@ function renderSetup(){
       <div class="picks tok-picks" role="radiogroup" aria-label="Player ${i+1} token">${Object.entries(TOKENS).map(([k,t])=>`<label class="pick" title="${t.label}"><input type="radio" name="tok${i}" value="${k}" data-tok="${i}" ${p.token===k?'checked':''} aria-label="${t.label}"><span class="disc" style="--pc:${p.color}">${tokenSVG(k)}</span></label>`).join('')}</div>
       <div class="picks" role="radiogroup" aria-label="Player ${i+1} color">${COLORS.map(c=>`<label class="pick" title="${c.name}"><input type="radio" name="col${i}" value="${c.hex}" data-col="${i}" ${p.color===c.hex?'checked':''} aria-label="${c.name}"><span class="sw" style="--pc:${c.hex}"></span></label>`).join('')}</div>
     </fieldset>`).join('');
+}
+function renderThemes(){
+  $('#theme-picks').innerHTML = Object.entries(THEMES).map(([k,T])=>`<label class="theme-card"><input type="radio" name="theme" value="${k}" ${setup.theme===k?'checked':''}><span><b>${esc(T.label)}</b><small>${esc(T.blurb)}</small></span></label>`).join('');
 }
 function saveSetup(){ LS.set(KEY_SETUP, JSON.stringify(setup)); }
 function renderRules(){
@@ -3095,6 +3163,7 @@ $('#setup-form').addEventListener('change', e=>{
   const t = e.target;
   if(t.name==='count'){ setup.count = +t.value; renderSetup(); saveSetup(); return; }
   if(t.dataset.kind!=null){ setup.players[+t.dataset.kind].bot = t.value==='bot'; saveSetup(); return; }
+  if(t.name==='theme'){ setup.theme = themeOf(t.value); saveSetup(); return; }
   if(t.closest('#rules') || t.id==='spinfirst'){ readRules(); saveSetup(); return; }
   const swap = (field, i, val) => {   // tokens and colors stay unique: trade with whoever had it
     const other = setup.players.findIndex((p,j)=>j!==i && j<setup.count && p[field]===val);
@@ -3118,7 +3187,7 @@ $('#setup-form').addEventListener('submit', e=>{
   const startIt = () => {
   readRules(); saveSetup();
   const seed = (Date.now() ^ Math.floor(Math.random()*0xFFFFFFFF)) >>> 0;
-  startWithState(newGame({seed, players:ps, pickFirst:true, rules:engineRules(setup.rules)}), {spin:setup.spin});
+  startWithState(newGame({seed, players:ps, pickFirst:true, rules:engineRules(setup.rules), theme:setup.theme}), {spin:setup.spin});
   };
   let auto = null; try{ auto = JSON.parse(LS.get(KEY_AUTO)); }catch(err){}
   if(validState(auto) && auto.phase!=='over'){
@@ -3131,7 +3200,7 @@ function showSetup(){
   const dlg = $('#modal'); if(dlg.open) dlg.close();
   ui.state = null; ui.history = [];
   $('#game').hidden = true; $('#setup').hidden = false;
-  renderSetup(); renderRules(); updateInstall();
+  renderSetup(); renderThemes(); renderRules(); updateInstall();
   let auto = null; try{ auto = JSON.parse(LS.get(KEY_AUTO)); }catch(e){}
   const box = $('#resume-box');
   const inProgress = validState(auto) && auto.phase!=='over';
@@ -3193,6 +3262,26 @@ function runTests(){
     throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:'Bo', token:s.players[1].token, color:cl[7]}));
     throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:'   ', token:s.players[1].token, color:s.players[1].color}));
     throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:s.players[1].name, token:s.players[1].token, color:s.players[1].color}));
+  });
+  t('Every theme keeps the rules: same effects and amounts, unique short names', ()=>{
+    const nums = x => (x.match(/\d+/g)||[]).join(',');
+    try {
+    for(const [id,T] of Object.entries(THEMES)){
+      useTheme(id);
+      const names = BOARD.filter(sp=>['prop','rail','util','tax'].includes(sp.type)).map(sp=>sp.name);
+      eq(new Set(names).size, names.length, id+' has duplicate names');
+      names.forEach(n=>{ if(n.length>24) throw new Error(id+': name too long: '+n); });
+      CHANCE.forEach((c,k)=>eq(nums(c.text), nums(THEME_BASE.chance[k]), id+' chance card '+k+' changed its numbers'));
+      CHEST.forEach((c,k)=>eq(nums(c.text), nums(THEME_BASE.chest[k]), id+' chest card '+k+' changed its numbers'));
+      eq(BOARD.filter(sp=>sp.type==='chance').every(sp=>sp.name===T.decks.chance), true);
+    }
+    useTheme('texas'); eq(BOARD[39].name, 'Austin'); eq(BOARD[5].name, 'Texas Central');
+    // a themed game plays the same: same seed and moves give the same cash and positions
+    const run = th => { useTheme(th); let s = newGame({seed:777, theme:th, players:Array.from({length:3},(_,i)=>({name:'P'+(i+1), token:Object.keys(TOKENS)[i], color:COLORS[i].hex}))}); s.debugDice = [[1,2],[3,4],[2,5]]; s = R(s,{type:'ROLL'}); if(s.pending?.type==='buy') s = R(s,{type:'BUY'}); return [s.players[0].pos, s.players[0].cash, JSON.stringify(Object.values(s.props).map(p=>p.owner))].join('|'); };
+    const base0 = run('classic'); eq(run('texas'), base0); eq(run('usa'), base0);
+    useTheme('classic');
+    let s = base(); eq(s.theme, 'classic'); s = R(s,{type:'SET_THEME', theme:'usa'}); eq(s.theme, 'usa'); throws(()=>R(s,{type:'SET_THEME', theme:'usa'})); throws(()=>R(s,{type:'SET_THEME', theme:'nope'}));
+    } finally { useTheme('classic'); }
   });
   t('Passing Go pays $200', ()=>{ let s = base(); s.players[0].pos = 38; s.debugDice = [[2,3]]; s = R(s,{type:'ROLL'}); eq(s.players[0].pos, 3); eq(s.pending.type,'buy'); eq(s.players[0].cash, 1700); });
   t('Buying a property', ()=>{ let s = base(); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'}); s = R(s,{type:'BUY'}); eq(s.props[3].owner, 0); eq(s.players[0].cash, 1440); });
