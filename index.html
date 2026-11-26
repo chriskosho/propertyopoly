@@ -4,9 +4,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#E6EDF1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B2A50" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#E6EDF1">
+<script>try{var t=localStorage.getItem('mono.theme')==='dark'?'dark':'light';document.documentElement.dataset.theme=t;if(t==='dark')document.querySelector('meta[name=theme-color]').content='#0B2A50'}catch(e){document.documentElement.dataset.theme='light'}</script>
 <meta name="description" content="A hot-seat property trading game for 2 to 8 players on one screen. Works offline.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -32,12 +32,17 @@
   --cond:"Bahnschrift SemiCondensed","Bahnschrift","Avenir Next Condensed","DIN Condensed","DIN Alternate","Roboto Condensed","Arial Narrow",sans-serif-condensed,"Helvetica Neue",Arial,sans-serif;
   --serif:Charter,"Bitstream Charter","Sitka Text","Iowan Old Style",Cambria,Georgia,serif;
 }
-@media (prefers-color-scheme:dark){
-  :root{
-    --paper:#0B2A50; --sheet:#11396A; --line:#D3E4F4; --line-soft:rgba(211,228,244,.22);
-    --grid:rgba(211,228,244,.06); --ink:#F0F6FC; --muted:#A8C0DA;
-    --red:#FF6B5D; --red-ink:#2B0905; --hatch:rgba(211,228,244,.45);
-  }
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0B2A50; --sheet:#11396A; --line:#D3E4F4; --line-soft:rgba(211,228,244,.22);
+  --grid:rgba(211,228,244,.06); --ink:#F0F6FC; --muted:#A8C0DA;
+  --red:#FF6B5D; --red-ink:#2B0905; --hatch:rgba(211,228,244,.45);
+}
+/* The board is always a white whiteprint, whichever theme the rest of the screen uses. */
+.board{
+  --sheet:#FFFFFF; --line:#1C4E8A; --line-soft:rgba(28,78,138,.22);
+  --ink:#0E2A4F; --muted:#486383; --red:#D52F26; --red-ink:#FFFFFF; --hatch:rgba(28,78,138,.42);
+  --card:#FFFFFF; --card-ink:#13243D; color:var(--ink);
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -460,10 +465,7 @@ dialog.wide{width:min(760px,calc(100vw - 20px))}
 #whatsnew li{margin:.3em 0;line-height:1.45}
 #whatsnew .row-btns{position:sticky;bottom:-24px;background:var(--sheet);padding:12px 0 4px;margin-top:10px;border-top:1px solid var(--line-soft)}
 
-/* Animations follow the device's reduce-motion setting unless the player overrides it in the Game menu. */
-@media (prefers-reduced-motion:reduce){
-  html:not(.motion-on) *,html:not(.motion-on) *::before,html:not(.motion-on) *::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
-}
+/* Animations can be turned off in the Game menu. */
 html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
 </style>
 </head>
@@ -1435,8 +1437,12 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.3.0';
 const RELEASES = [
+  {version:'2.3.0', date:'2026-11-25', title:'Light theme and animations on', changes:[
+    'The board is always white, even in dark mode.',
+    'New Appearance setting in the Game menu: Light or Dark. Light is the default.',
+    'Animations are on by default. The Animations setting is now just On or Off, and no longer follows the device.']},
   {version:'2.2.0', date:'2026-11-25', title:'New tokens', changes:[
     'Every token is redrawn as a shaded metal miniature standing on your color.',
     'Four new tokens: the Scottie dog, the T-rex, the horse and rider, and the cannon. There are now 14 to choose from.']},
@@ -1465,17 +1471,22 @@ const RELEASES = [
   {version:'1.0.0', title:'First release', changes:[
     'A hot-seat property trading game for 2 to 8 players, with auctions, building, mortgages, trading, jail, bankruptcy, saving and undo.']},
 ];
-const KEY_MOTION='mono.motion', KEY_MOTION_TOLD='mono.motionTold';
+const KEY_MOTION='mono.motion', KEY_THEME='mono.theme';
 const KEY_SEEN='mono.seenVersion', KEY_RELOAD='mono.reloadedFor', KEY_RESUME='mono.resumeAfterUpdate';
 const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup', KEY_TV='mono.tv';
 const ui = {state:null, history:[], modalKey:null, userModal:null, animating:false, displayPos:[], handoffSeen:0,
   overDismissed:false, tradeDraft:null, tradeGate:null, muted:LS.get(KEY_MUTE)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
-  motion:['auto','on','off'].includes(LS.get(KEY_MOTION)) ? LS.get(KEY_MOTION) : 'auto',
+  motion:LS.get(KEY_MOTION)==='off' ? 'off' : 'on',
+  theme:LS.get(KEY_THEME)==='dark' ? 'dark' : 'light',
   hl:null, botTimer:null, spin:null, auctionKey:null, auctionEnds:0, installEvt:null};
-/* Animations: 'auto' follows the device's reduce-motion setting, 'on' and 'off' override it. */
-const deviceReducesMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const reducedMotion = () => ui.motion==='off' || (ui.motion==='auto' && deviceReducesMotion());
-function applyMotion(){ const c = document.documentElement.classList; c.toggle('motion-on', ui.motion==='on'); c.toggle('motion-off', ui.motion==='off'); }
+/* Animations are on by default; the Game menu can turn them off. An old saved 'auto' counts as on. */
+const reducedMotion = () => ui.motion==='off';
+function applyMotion(){ document.documentElement.classList.toggle('motion-off', ui.motion==='off'); }
+/* Theme: light by default. The board stays white in both. */
+function applyTheme(){
+  document.documentElement.dataset.theme = ui.theme;
+  const m = document.querySelector('meta[name=theme-color]'); if(m) m.content = ui.theme==='dark' ? '#0B2A50' : '#E6EDF1';
+}
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
 const esc = t => String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2252,9 +2263,12 @@ function modalHTML(key){
       <div class="row-btns"><button class="btn" data-ui="save" autofocus>Save game</button><button class="btn" data-ui="loadslot" ${hasSlot?'':'disabled'}>Load saved game</button></div>
       <div class="row-btns" style="margin-top:10px"><button class="btn" data-ui="export">Export to a file</button><button class="btn" data-ui="import">Open a saved game file</button></div>
       ${rulesSummary(s)}
+      <h3>Appearance</h3>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Theme">${[['light','Light'],['dark','Dark']].map(([v,l])=>`<button class="btn small ${ui.theme===v?'primary':''}" data-ui="theme" data-v="${v}" aria-pressed="${ui.theme===v}">${l}</button>`).join('')}</div>
+      <p class="hint">Dark changes the screen around the board. The board itself stays white.</p>
       <h3>Animations</h3>
-      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['auto','Match device'],['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
-      <p class="hint">${deviceReducesMotion() ? 'This device asks apps to reduce motion, so Match device turns animations off. Choose On to see dice, hops and flying cash anyway.' : 'Dice, hops and flying cash. Match device turns them off only if the device asks for reduced motion.'}</p>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
+      <p class="hint">Dice, hops and flying cash.</p>
       <p class="hint">Version ${esc(APP_VERSION)}. New versions install on their own. <button class="btn small ghost" data-ui="wnOpen">What’s new</button></p>
       <div class="row-btns install-only-browser" style="margin-top:10px">${ui.installEvt?'<button class="btn" data-ui="install">Install the app</button>':''}</div>
       ${isIOS() ? '<p class="install-hint install-only-browser">To install on iPhone or iPad, tap Share in Safari, then Add to Home Screen.</p>' : ''}
@@ -2422,7 +2436,8 @@ function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
     case 'handoffOk': ui.handoffSeen = s.turnNo; syncModal(); scheduleBot(); break;
-    case 'motion': ui.motion = el.dataset.v; LS.set(KEY_MOTION, ui.motion); applyMotion(); syncModal(); toast(ui.motion==='on' ? 'Animations are on.' : ui.motion==='off' ? 'Animations are off.' : 'Animations follow this device’s setting.'); break;
+    case 'motion': ui.motion = el.dataset.v; LS.set(KEY_MOTION, ui.motion); applyMotion(); syncModal(); toast(ui.motion==='on' ? 'Animations are on.' : 'Animations are off.'); break;
+    case 'theme': ui.theme = el.dataset.v==='dark' ? 'dark' : 'light'; LS.set(KEY_THEME, ui.theme); applyTheme(); syncModal(); toast(ui.theme==='dark' ? 'Dark theme.' : 'Light theme.'); break;
     case 'wnOpen': showWhatsNew(RELEASES.slice(0,3), true); break;
     case 'wnClose': LS.set(KEY_SEEN, APP_VERSION); $('#whatsnew').close(); break;
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
@@ -2498,10 +2513,6 @@ function startWithState(s, opts={}){
   s.fx = []; migrate(s); stopBots();
   ui.state = s; ui.history = []; ui.handoffSeen = opts.noHandoff ? s.turnNo : s.turnNo - 1; ui.overDismissed = false; ui.userModal = null; ui.modalKey = null; ui.lastRingPos = null; ui.tradeGate = null;
   ui.hl = null; ui.spin = opts.spin ? {} : null;
-  if(ui.motion==='auto' && deviceReducesMotion() && !LS.get(KEY_MOTION_TOLD)){
-    LS.set(KEY_MOTION_TOLD, '1');
-    setTimeout(()=>toast('Animations are off because this device asks for reduced motion. Turn them on in the Game menu.'), 600);
-  }
   $('#setup').hidden = true; $('#game').hidden = false;
   buildBoard(); autosave(); render();
 }
@@ -2955,7 +2966,7 @@ function maybeShowWhatsNew(){
 }
 
 document.body.classList.toggle('tv', ui.tv);
-applyMotion();
+applyMotion(); applyTheme();
 showSetup();
 if(LS.get(KEY_RESUME)==='1'){
   LS.del(KEY_RESUME);

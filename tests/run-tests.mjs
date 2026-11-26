@@ -179,7 +179,7 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
-// 7. Animations: a device that asks for reduced motion skips them, and the Game menu setting turns them back on.
+// 7. Animations are on by default and the Game menu can turn them off. The theme is light by default and the board stays white in dark.
 {
   const { ctx, page } = await fresh({ reducedMotion: 'reduce', viewport: { width: 1280, height: 820 } });
   await page.goto(url);
@@ -187,28 +187,47 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.uncheck('#spinfirst');
   await page.click('button[type=submit]');
   await page.click('#modal[open] [data-ui=handoffOk]');
-  const notice = await page.waitForSelector('#toast div', { timeout: 4000 }).then(e => e.innerText()).catch(() => '');
-  if (!/reduced motion/.test(notice)) problems.push('animations: no notice that reduced motion turned animations off');
   const roll = async () => {
     await page.evaluate(() => { __mono.ui.state.debugDice = [[3, 4]]; });
     await page.keyboard.press('Space');
     await page.waitForTimeout(200);
     return page.evaluate(() => document.querySelectorAll('#dice .die.tossing').length);
   };
-  const off = await roll();
-  if (off !== 0) problems.push('animations: dice were tossed even though the device asked for reduced motion');
-  await page.waitForTimeout(1500);
-  // Play on (resolving any card or purchase) until the next player is ready to roll.
-  await page.evaluate(() => { const first = __mono.state.cur; for (let k = 0; k < 40; k++) { const s = __mono.state; if (s.cur !== first && s.phase === 'start' && !s.pending && !s.debts.length) break; __mono.autoplay(1); } });
-  await page.waitForTimeout(300);
-  await page.keyboard.press('?');
-  await page.click('#modal[open] [data-ui=motion][data-v=on]');
-  await page.click('#modal[open] [data-ui=close]');
   const on = await roll();
-  if (on !== 2) problems.push(`animations: expected 2 tossed dice after turning animations on, saw ${on}`);
-  const saved = await page.evaluate(() => localStorage.getItem('mono.motion'));
-  if (saved !== 'on') problems.push('animations: the setting was not remembered');
-  console.log(`Animation test: reduced motion skipped them (${off} tossed), the setting turned them on (${on} tossed)`);
+  if (on !== 2) problems.push(`animations: expected 2 tossed dice by default (even when the device asks for reduced motion), saw ${on}`);
+  await page.waitForFunction(() => !__mono.ui.animating, null, { timeout: 8000 }).catch(() => {});
+  await page.evaluate(() => { const first = __mono.state.cur; for (let k = 0; k < 40; k++) { const s = __mono.state; if (s.cur !== first && s.phase === 'start' && !s.pending && !s.debts.length) break; __mono.autoplay(1); } });
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('?');
+  await page.waitForSelector('#modal[open] [data-ui=motion]', { timeout: 5000 });
+  if (await page.locator('#modal[open] [data-ui=motion][data-v=auto]').count()) problems.push('animations: a Match device option is still offered');
+  // Theme: light by default, dark on request, board white either way.
+  const boardBg = () => page.evaluate(() => getComputedStyle(document.querySelector('#board .center')).backgroundColor);
+  const pageBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const lightTheme = await page.evaluate(() => document.documentElement.dataset.theme);
+  if (lightTheme !== 'light') problems.push('theme: default is not light');
+  await page.click('#modal[open] [data-ui=theme][data-v=dark]');
+  const dark = await page.evaluate(() => document.documentElement.dataset.theme);
+  if (dark !== 'dark') problems.push('theme: dark did not apply');
+  if ((await boardBg()) !== 'rgb(255, 255, 255)') problems.push('theme: the board is not white in dark mode: ' + await boardBg());
+  if ((await pageBg()) === 'rgb(230, 237, 241)') problems.push('theme: the page did not turn dark');
+  if (await page.evaluate(() => localStorage.getItem('mono.theme')) !== 'dark') problems.push('theme: the choice was not remembered');
+  await page.reload(); await page.waitForTimeout(500);
+  if (await page.evaluate(() => document.documentElement.dataset.theme) !== 'dark') problems.push('theme: dark was not restored after reload');
+  await page.evaluate(() => { localStorage.setItem('mono.theme', 'light'); });
+  // Turn animations off and confirm no dice toss, in a fresh game after the reload.
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.click('#modal[open] [data-ui=handoffOk]');
+  await page.keyboard.press('?');
+  await page.waitForSelector('#modal[open] [data-ui=motion]', { timeout: 5000 });
+  await page.click('#modal[open] [data-ui=motion][data-v=off]');
+  await page.click('#modal[open] [data-ui=close]');
+  const off = await roll();
+  if (off !== 0) problems.push(`animations: dice were tossed after turning animations off (${off})`);
+  if (await page.evaluate(() => localStorage.getItem('mono.motion')) !== 'off') problems.push('animations: the setting was not remembered');
+  console.log(`Animation and theme test: on by default (${on} tossed), off works (${off} tossed), board white in dark mode`);
   await ctx.close();
 }
 

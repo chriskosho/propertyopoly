@@ -29,11 +29,11 @@ Once it's installed it opens full screen and works with no internet connection. 
 - Autosave, manual save and load, export and import as a JSON file
 - Undo within the current turn
 - Sound effects generated in the browser
-- Animations: tossed dice, a doubles flourish, hopping tokens, cash flying between players, flipping cards, and a "Sold" stamp (all skipped when the device asks for reduced motion)
+- Animations: tossed dice, a doubles flourish, hopping tokens, cash flying between players, flipping cards, and a "Sold" stamp (on by default; turn them off in the Game menu)
 - TV mode for a big screen, and keyboard shortcuts (Space to roll, Enter to end the turn, U to undo, ? for the full list)
 - Installable on phones, tablets and computers, and playable offline
 - Updates itself: when a new version is published, the app saves your game, reloads, picks up where you were, and shows a What's new window
-- Light and dark appearance, reduced-motion support, keyboard-accessible dialogs
+- Light (default) or dark appearance chosen in the Game menu, with the board always white; keyboard-accessible dialogs
 
 ## Tests
 
