@@ -85,8 +85,9 @@ button,input,select{font:inherit;color:inherit}
   font-size:clamp(40px,6.4vw,112px);line-height:.88;letter-spacing:-.025em;margin:0 0 .25em;
 }
 .hero p{font-size:1.2rem;line-height:1.55;max-width:34ch;margin:0 0 1.2em}
-.hero svg{width:100%;max-width:560px;height:auto;display:block;margin-top:8px}
-.hero svg .ln{fill:none;stroke:var(--line);stroke-width:1.5}
+.hero svg{width:100%;max-width:560px;height:auto;display:block;margin-top:8px;--line:#1C4E8A;--red:#D52F26}
+.hero svg .ln{fill:#FFFFFF}
+.hero svg .ln{stroke:var(--line);stroke-width:1.5}
 .hero svg .dim{fill:none;stroke:var(--red);stroke-width:1.2}
 .hero svg text{font-family:var(--cond);font-stretch:condensed;fill:var(--line)}
 .hero svg text.red{fill:var(--red)}
@@ -134,7 +135,13 @@ button,input,select{font:inherit;color:inherit}
 }
 .side{flex:0 0 340px;display:flex;flex-direction:column;gap:12px;min-height:0}
 .side h2{font-family:var(--cond);font-stretch:condensed;font-size:1.05rem;font-weight:600;margin:0 0 6px;color:var(--line)}
-.toolbar{display:flex;gap:6px;flex-wrap:wrap}
+.toolbar{display:flex;gap:6px;align-items:center}
+.toolbar #undo-btn{margin-right:auto}
+.toolbar .btn svg{width:1.15em;height:1.15em;fill:currentColor;flex:none}
+.toolbar .btn.fs{display:inline-flex;align-items:center;gap:.4em}
+.toolbar .btn.icon{padding:.35em .5em;display:inline-flex}
+.toolbar .btn.icon svg{width:1.4em;height:1.4em}
+body:not(.show-log) .log{display:none}
 @media (max-width:900px){
   #game{flex-direction:column;height:auto;padding:10px}
   .board{width:100%}
@@ -180,8 +187,6 @@ button,input,select{font:inherit;color:inherit}
 /* ---------- center ---------- */
 .center{
   grid-area:2/2/11/11;background-color:var(--sheet);position:relative;padding:4cqi;display:flex;flex-direction:column;min-width:0;min-height:0;
-  background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
-  background-size:4.1cqi 4.1cqi;background-position:-1px -1px;
 }
 .masthead{font-family:var(--cond);font-stretch:condensed;color:var(--line);display:flex;align-items:baseline;gap:1.4cqi;flex-wrap:wrap}
 .mark{font-size:3.6cqi;font-weight:700;letter-spacing:-.015em;line-height:1}
@@ -196,6 +201,7 @@ button,input,select{font:inherit;color:inherit}
 .die i{background:#0E2A4F;border-radius:50%;margin:13%}
 .acts{display:flex;gap:1.3cqi;flex-wrap:wrap;justify-content:center}
 .acts .btn{font-size:max(13px,2.1cqi);background-color:var(--sheet)}
+.btn.primary.endturn,.acts .btn.primary.endturn{background:#0F7A5C;border-color:#0F7A5C;color:#fff}
 .acts .btn.primary{background:var(--red);font-size:max(14px,2.5cqi);padding:.6em 1.4em}
 .acts2 .btn{font-size:max(12px,1.75cqi)}
 .titleblock{align-self:flex-end;border-collapse:collapse;font-family:var(--cond);font-stretch:condensed;font-size:max(9px,1.35cqi);color:var(--line);background:var(--sheet);margin-top:2cqi}
@@ -517,7 +523,7 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
       <text x="460" y="44" text-anchor="middle" font-size="13">Collect $200</text><text x="460" y="60" text-anchor="middle" font-size="13">as you pass</text>
       <rect class="ln" x="280" y="20" width="100" height="160"/>
       <rect x="280" y="20" width="100" height="34" fill="#8B5A3C" stroke="currentColor" style="stroke:var(--line)"/>
-      <text x="330" y="84" text-anchor="middle" font-size="15">Mediterranean</text>
+      <text x="330" y="84" text-anchor="middle" font-size="12.5">Mediterranean</text>
       <text x="330" y="102" text-anchor="middle" font-size="15">Avenue</text>
       <text x="330" y="166" text-anchor="middle" font-size="15">$60</text>
       <rect class="ln" x="180" y="20" width="100" height="160"/>
@@ -583,9 +589,8 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
   <aside class="side" aria-label="Game panel">
     <div class="toolbar">
       <button class="btn small" data-ui="undo" id="undo-btn" aria-keyshortcuts="U">Undo</button>
-      <button class="btn small" data-ui="menu">Game menu</button>
-      <button class="btn small" data-ui="mute" id="mute-btn" aria-pressed="false" aria-keyshortcuts="M">Sound on</button>
-      <button class="btn small" data-ui="tv" id="tv-btn" aria-pressed="false" aria-keyshortcuts="V">TV mode</button>
+      <button class="btn small fs" data-ui="tv" id="tv-btn" aria-pressed="false" aria-keyshortcuts="V"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="fs-icon" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg><span id="tv-label">Full screen</span></button>
+      <button class="btn small icon" data-ui="menu" id="menu-btn" aria-label="Game menu" title="Game menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
     </div>
     <p class="undo-note" id="undo-note"></p>
     <section aria-labelledby="pl-h"><h2 id="pl-h">Players</h2><ul class="players" id="players"></ul><p class="hl-note" id="hl-note">Tap a name to show that player’s property on the board.</p></section>
@@ -1482,8 +1487,14 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.5.0';
 const RELEASES = [
+  {version:'2.5.0', date:'2026-11-26', title:'Cleaner screen', changes:[
+    'The only buttons on the game screen are now Undo, Full screen (was TV mode) and a gear for the Game menu.',
+    'Sound and the Game log are now options in the Game menu. The log is hidden until you turn it on.',
+    'The board center is solid white instead of graph paper, and the cards on the home screen are white.',
+    'End turn is green, so it no longer looks like Roll dice.',
+    'The spin to see who goes first now lasts about five seconds.']},
   {version:'2.4.1', date:'2026-11-26', title:'Scrollable Still for sale', changes:[
     'The Still for sale row is now a single line you can swipe or scroll sideways, with larger tiles that are easier to tap.']},
   {version:'2.4.0', date:'2026-11-25', title:'Monopolies, mortgages and a better trade screen', changes:[
@@ -1529,9 +1540,9 @@ const RELEASES = [
 ];
 const KEY_MOTION='mono.motion', KEY_THEME='mono.theme';
 const KEY_SEEN='mono.seenVersion', KEY_RELOAD='mono.reloadedFor', KEY_RESUME='mono.resumeAfterUpdate';
-const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup', KEY_TV='mono.tv';
+const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup', KEY_TV='mono.tv', KEY_LOG='mono.showLog';
 const ui = {state:null, history:[], modalKey:null, userModal:null, animating:false, displayPos:[], handoffSeen:0,
-  overDismissed:false, tradeDraft:null, tradeOpen:new Set(), tradeGate:null, muted:LS.get(KEY_MUTE)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
+  overDismissed:false, tradeDraft:null, tradeOpen:new Set(), tradeGate:null, muted:LS.get(KEY_MUTE)==='1', showLog:LS.get(KEY_LOG)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
   motion:LS.get(KEY_MOTION)==='off' ? 'off' : 'on',
   theme:LS.get(KEY_THEME)==='dark' ? 'dark' : 'light',
   hl:null, botTimer:null, spin:null, auctionKey:null, auctionEnds:0, installEvt:null};
@@ -2041,7 +2052,7 @@ function renderCenter(s){
     }
   } else {
     status = p.bankrupt ? `${p.name} is out of the game.` : 'Build, mortgage or trade if you like, then end your turn.';
-    acts = `<button class="btn primary" ${act({type:'END_TURN'})} aria-keyshortcuts="Enter">End turn</button>`;
+    acts = `<button class="btn primary endturn" ${act({type:'END_TURN'})} aria-keyshortcuts="Enter">End turn</button>`;
   }
   const mort = !p.bot && s.phase!=='over' && !p.bankrupt && !s.pending && !s.debts.length && (s.phase==='start' || s.phase==='end') ? mortgagedOf(s, s.cur) : [];
   const mortNote = mort.length ? `<p class="mortnote">You have ${mort.length} mortgaged ${mort.length===1?'property':'properties'}. Unmortgaging ${mort.length===1?'it costs':'them costs'} ${money(mort.reduce((n,i)=>n+unmortgageCost(i),0))}. <button class="btn small ghost" data-ui="manage">Open Build and mortgage</button></p>` : '';
@@ -2126,8 +2137,8 @@ function updateToolbar(){
   const s = ui.state;
   $('#undo-note').textContent = !ui.history.length ? 'Undo works for actions in the current turn.' :
     `Undo is available for ${ui.history.length} action${ui.history.length>1?'s':''}. Dice results stay the same if you redo a roll.`;
-  const m = $('#mute-btn'); m.textContent = ui.muted ? 'Sound off' : 'Sound on'; m.setAttribute('aria-pressed', String(!ui.muted));
-  const tv = $('#tv-btn'); tv.textContent = ui.tv ? 'Exit TV mode' : 'TV mode'; tv.setAttribute('aria-pressed', String(ui.tv));
+  const tv = $('#tv-btn'); $('#tv-label').textContent = ui.tv ? 'Exit full screen' : 'Full screen'; tv.setAttribute('aria-pressed', String(ui.tv));
+  $('#fs-icon').setAttribute('d', ui.tv ? 'M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z' : 'M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z');
 }
 
 /* ---------- dialogs ---------- */
@@ -2380,6 +2391,11 @@ function modalHTML(key){
       <div class="row-btns"><button class="btn" data-ui="save" autofocus>Save game</button><button class="btn" data-ui="loadslot" ${hasSlot?'':'disabled'}>Load saved game</button></div>
       <div class="row-btns" style="margin-top:10px"><button class="btn" data-ui="export">Export to a file</button><button class="btn" data-ui="import">Open a saved game file</button></div>
       ${rulesSummary(s)}
+      <h3>Sound</h3>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Sound">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${(ui.muted?'off':'on')===v?'primary':''}" data-ui="sound" data-v="${v}" aria-pressed="${(ui.muted?'off':'on')===v}">${l}</button>`).join('')}</div>
+      <h3>Game log</h3>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Game log">${[['on','Show'],['off','Hide']].map(([v,l])=>`<button class="btn small ${(ui.showLog?'on':'off')===v?'primary':''}" data-ui="log" data-v="${v}" aria-pressed="${(ui.showLog?'on':'off')===v}">${l}</button>`).join('')}</div>
+      <p class="hint">The log lists every move in the side panel.</p>
       <h3>Appearance</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Theme">${[['light','Light'],['dark','Dark']].map(([v,l])=>`<button class="btn small ${ui.theme===v?'primary':''}" data-ui="theme" data-v="${v}" aria-pressed="${ui.theme===v}">${l}</button>`).join('')}</div>
       <p class="hint">Dark changes the screen around the board. The board itself stays white.</p>
@@ -2407,7 +2423,7 @@ function modalHTML(key){
         <kbd>B</kbd><span>Build and mortgage</span>
         <kbd>T</kbd><span>Propose a trade</span>
         <kbd>M</kbd><span>Sound on or off</span>
-        <kbd>V</kbd><span>TV mode</span>
+        <kbd>V</kbd><span>Full screen</span>
         <kbd>?</kbd><span>Open this menu</span>
       </div>
       <div class="row-btns"><button class="btn" data-ui="newgame">${ui.confirmNew?'Press again to quit this game':'Start a new game'}</button><button class="btn" data-ui="close">Close</button></div>`;
@@ -2481,8 +2497,9 @@ async function runSpin(){
   const target = discs.findIndex(d=>+d.dataset.sp===s.first);
   const show = k => { discs.forEach((d,j)=>d.classList.toggle('on', j===k)); name.textContent = s.players[+discs[k].dataset.sp].name; };
   if(!reducedMotion() && discs.length>1){
-    const total = discs.length*3 + target;
-    for(let k=0;k<=total;k++){ show(k % discs.length); sfx.play('step'); await sleep(55 + 260*(k/total)**3); if(ui.spin!==sp) return; }
+    const loops = Math.max(3, Math.ceil(32/discs.length)), total = discs.length*loops + target;   // about 5 to 6 seconds, slowing to a stop
+    for(let k=0;k<=total;k++){ show(k % discs.length); sfx.play('step'); await sleep(60 + 420*(k/total)**3); if(ui.spin!==sp) return; }
+    await sleep(350);
   }
   show(target); sfx.play('buy'); sp.done = true;
   name.textContent = `${s.players[s.first].name} goes first`;
@@ -2621,7 +2638,9 @@ function uiCommand(cmd, el){
     case 'customBid': { const id = +el.dataset.player, v = +$(`#cb${id}`).value; if(!v){ toast('Enter a bid amount first.'); return; } dispatch({type:'AUCTION_BID', player:id, amount:v}); } break;
     case 'undo': undo(); break;
     case 'tv': setTV(!ui.tv, true); break;
-    case 'mute': ui.muted = !ui.muted; LS.set(KEY_MUTE, ui.muted?'1':'0'); updateToolbar(); if(!ui.muted) sfx.play('collect'); break;
+    case 'mute': ui.muted = !ui.muted; LS.set(KEY_MUTE, ui.muted?'1':'0'); syncModal(); toast(ui.muted ? 'Sound off.' : 'Sound on.'); if(!ui.muted) sfx.play('collect'); break;
+    case 'sound': ui.muted = el.dataset.v==='off'; LS.set(KEY_MUTE, ui.muted?'1':'0'); syncModal(); if(!ui.muted) sfx.play('collect'); break;
+    case 'log': ui.showLog = el.dataset.v==='on'; LS.set(KEY_LOG, ui.showLog?'1':'0'); document.body.classList.toggle('show-log', ui.showLog); syncModal(); break;
     case 'save': LS.set(KEY_SLOT, JSON.stringify(s)) ? toast(`Saved at turn ${s.turnNo}.`) : toast('This browser blocked saving. Use Export to a file instead.'); syncModal(); break;
     case 'loadslot': { const raw = LS.get(KEY_SLOT); try{ const o = JSON.parse(raw); if(!validState(o)) throw 0; startWithState(o); toast(`Loaded the saved game at turn ${o.turnNo}.`); }catch(e){ toast('The saved game couldn’t be read.'); } } break;
     case 'export': exportGame(); break;
@@ -3150,7 +3169,7 @@ function maybeShowWhatsNew(){
   showWhatsNew(i<0 ? RELEASES.slice(0,1) : RELEASES.slice(0,i), false);
 }
 
-document.body.classList.toggle('tv', ui.tv);
+document.body.classList.toggle('tv', ui.tv); document.body.classList.toggle('show-log', ui.showLog);
 applyMotion(); applyTheme();
 showSetup();
 if(LS.get(KEY_RESUME)==='1'){
