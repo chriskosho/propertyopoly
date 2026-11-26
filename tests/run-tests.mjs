@@ -471,7 +471,7 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
-// 14. Immersive rolling: menu toggle, tap picks the dice up, tap/flick/shake throws, 3D dice settle on the rolled faces.
+// 14. Immersive rolling: menu toggle, tap picks the dice up, tap/flick throws, 3D dice settle on the rolled faces.
 {
   const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 }, hasTouch: true });
   await page.goto(url);
@@ -523,38 +523,14 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: flicking did not throw'));
   await idle().catch(() => {});
   if ((await faces()) !== 'Die showing 1|Die showing 3') problems.push('immersive: flick roll faces wrong: ' + await faces());
-  // 4. Shake: realistic samples (linear acceleration in m/s²), with and without picking up first
-  const shake = () => page.evaluate(async () => { for (const m of [2, 18, 3, 1, 20, 2, 1]) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: m, y: 0, z: 0 }, accelerationIncludingGravity: { x: m, y: 0, z: 9.8 } })); await new Promise(r => setTimeout(r, 60)); } });
-  const gentle = () => page.evaluate(async () => { for (let k = 0; k < 12; k++) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: 4, y: 3, z: 0 }, accelerationIncludingGravity: { x: 4, y: 3, z: 9.8 } })); await new Promise(r => setTimeout(r, 60)); } });
-  await page.evaluate(() => startMotionWatch());
-  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[4, 6]]; });
-  await gentle(); await page.waitForTimeout(300);
-  if (await page.locator('#throw').count()) problems.push('immersive: a gentle movement (passing the phone) started a roll');
-  await shake();
-  await page.waitForSelector('#throw', { timeout: 3000 }).catch(() => problems.push('immersive: shaking did not roll'));
-  await idle().catch(() => {});
-  if ((await faces()) !== 'Die showing 4|Die showing 6') problems.push('immersive: shake roll faces wrong: ' + await faces());
-  await page.waitForTimeout(2600); // shake cooldown
-  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[3, 3], [1, 2]]; });
-  await page.locator('#center .acts .btn.primary').click(); await page.waitForSelector('#throw.armed');
-  await shake();
-  await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: shaking did not throw held dice'));
-  await idle().catch(() => {});
-  // 4b. Phones that report zero gravity-free acceleration still shake-roll from the with-gravity reading
-  await page.waitForTimeout(2600);
-  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[2, 2], [5, 1]]; });
-  await page.evaluate(async () => { for (const z of [9.8, 28, 9.8, 9.8, 30, 9.8]) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: 0, y: 0, z: 0 }, accelerationIncludingGravity: { x: 0, y: 0, z } })); await new Promise(r => setTimeout(r, 60)); } });
-  await page.waitForSelector('#throw', { timeout: 3000 }).catch(() => problems.push('immersive: shake with zero linear readings did not roll'));
-  await idle().catch(() => {});
-  await page.evaluate(() => { const s = __mono.ui.state; s.pending = null; render(); syncModal(); });
+  // 4. Motion features are gone: shaking does nothing and the menu has no motion settings
+  await fresh1();
+  await page.evaluate(async () => { for (const m of [2, 30, 3, 30, 2, 30]) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: m, y: 0, z: 0 }, accelerationIncludingGravity: { x: m, y: 0, z: 9.8 } })); await new Promise(r => setTimeout(r, 60)); } });
+  await page.waitForTimeout(400);
+  if (await page.locator('#throw').count()) problems.push('immersive: shaking still rolled');
   await page.click('#menu-btn');
-  const ms = await page.locator('#motion-status').innerText().catch(() => '');
-  if (!/Motion readings are arriving/.test(ms)) problems.push('immersive: menu motion check missing or wrong: ' + ms);
-  const sens = await page.locator('#shake-sens').inputValue().catch(() => null);
-  if (sens !== '5') problems.push('immersive: shake sensitivity should default to 5, saw ' + sens);
-  await page.locator('#shake-sens').fill('2'); await page.waitForTimeout(450);
-  if ((await page.evaluate(() => localStorage.getItem('mono.shakeSens'))) !== '2' || !/over 15\.0/.test(await page.locator('#motion-status').innerText())) problems.push('immersive: slider did not change the needed force');
-  await page.locator('#shake-sens').fill('5');
+  if (await page.locator('#shake-sens, #motion-status, [data-ui=motionAllow]').count()) problems.push('immersive: motion settings still in the menu');
+  if (/shake/i.test(await page.locator('#modal-body').innerText())) problems.push('immersive: the menu still mentions shaking');
   await page.click('#modal-x');
   // 5. Keyboard: R picks up, Space throws
   await page.evaluate(() => { const s = __mono.ui.state; s.pending = null; render(); syncModal(); });
@@ -568,6 +544,47 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await fresh1(); await page.locator('#center .acts .btn.primary').click(); await page.waitForTimeout(200);
   if (await page.locator('#throw').count()) problems.push('classic: a full-screen layer appeared');
   console.log('Immersive roll test done');
+  await ctx.close();
+}
+
+// 15. Build and Mortgage are separate screens; the Free Parking bag grows; payments fly as bills.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1280, height: 860 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.check('#r-parking').catch(async () => { await page.click('text=Free Parking jackpot'); });
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const labels = await page.locator('#center .acts2 .btn').allInnerTexts();
+  if (labels.join('|') !== 'Build|Mortgage|Propose a trade') problems.push('build/mortgage: expected Build|Mortgage|Propose a trade, saw ' + labels.join('|'));
+  // give player 1 the brown set plus a railroad
+  await page.evaluate(() => { const s = __mono.ui.state; [1, 3, 5].forEach(i => { s.props[i].owner = s.cur; }); render(); });
+  await page.click('#center [data-ui=build]');
+  await page.waitForSelector('#modal[open] #modal-title');
+  const bt = await page.locator('#modal-title').innerText(), bb = await page.locator('#modal-body').innerText();
+  if (bt !== 'Build' || !/Add house/.test(bb) || /Mortgage, \+/.test(bb) || /Reading Railroad/.test(bb)) problems.push('build/mortgage: Build screen content wrong: ' + bt + ' / ' + bb.slice(0, 300));
+  await page.click('#modal [data-ui=close] >> nth=-1');
+  await page.keyboard.press('m');
+  await page.waitForSelector('#modal[open] #modal-title');
+  const mt = await page.locator('#modal-title').innerText(), mb = await page.locator('#modal-body').innerText();
+  if (mt !== 'Mortgage' || /Add house/.test(mb) || !/Mortgage, \+/.test(mb) || !/Reading Railroad/.test(mb)) problems.push('build/mortgage: Mortgage screen content wrong: ' + mt + ' / ' + mb.slice(0, 300));
+  await page.click('#modal [data-ui=close] >> nth=-1');
+  // money bag: present, small when empty, bigger with a full pot
+  const bs = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.space.t-parking .bag')).getPropertyValue('--bs')));
+  const empty = await bs().catch(() => null);
+  if (!(empty > 0.4 && empty < 0.5)) problems.push('bag: missing or wrong size when empty: ' + empty);
+  // pay income tax into the pot (space 4) and watch bills fly to the bag
+  await page.evaluate(() => { const s = __mono.ui.state; s.players[s.cur].pos = 0; s.debugDice = [[1, 3]]; window.__bills = 0; new MutationObserver(m => m.forEach(r => r.addedNodes.forEach(n => { if (n.classList && n.classList.contains('bill')) window.__bills++; }))).observe(document.querySelector('#board'), { childList: true }); });
+  await page.locator('#center .acts .btn.primary').click();
+  await page.waitForFunction(() => !__mono.ui.animating, null, { timeout: 15000 });
+  const pot = await page.evaluate(() => __mono.ui.state.pot), bills = await page.evaluate(() => window.__bills);
+  if (pot !== 200) problems.push('bag: pot should be $200 after income tax, saw ' + pot);
+  if (bills !== 2) problems.push('bills: $200 should fly as two $100 bills, saw ' + bills);
+  const after = await bs();
+  if (!(after > empty + 0.05)) problems.push('bag: did not grow with the pot (' + empty + ' -> ' + after + ')');
+  if (!/\$200/.test(await page.locator('.space.t-parking .pot-tag').innerText())) problems.push('bag: amount label missing');
+  console.log('Build/Mortgage, money bag and bills test done');
   await ctx.close();
 }
 
