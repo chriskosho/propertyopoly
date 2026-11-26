@@ -588,6 +588,48 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
+// 16. Editing players from the Players list.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1100, height: 860 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="3"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  if ((await page.locator('#players .edit-pl').count()) !== 3) problems.push('edit: expected a pencil on each of 3 players');
+  await page.click('#players .edit-pl >> nth=1');
+  await page.waitForSelector('#modal[open] #edit-form');
+  const used = await page.locator('#edit-form input[name=etok]:disabled').count(), usedC = await page.locator('#edit-form input[name=ecol]:disabled').count();
+  if (used !== 2 || usedC !== 2) problems.push(`edit: expected 2 tokens and 2 colors greyed out, saw ${used}/${usedC}`);
+  // a clashing name is refused with a message, and the dialog stays open
+  const other = await page.evaluate(() => __mono.ui.state.players[0].name);
+  await page.fill('#edit-name', other); await page.click('#edit-form button[type=submit]');
+  if (!(await page.locator('#edit-err').isVisible())) problems.push('edit: a taken name was not refused');
+  // change name, token and color
+  const tok = await page.evaluate(() => { const used = __mono.ui.state.players.map(p => p.token); return Object.keys(TOKENS).find(k => !used.includes(k)); });
+  const col = await page.evaluate(() => { const used = __mono.ui.state.players.map(p => p.color); return COLORS.find(c => !used.includes(c.hex)).hex; });
+  await page.fill('#edit-name', 'Maria');
+  await page.locator(`#edit-form input[name=etok][value="${tok}"]`).check({ force: true });
+  await page.locator(`#edit-form input[name=ecol][value="${col}"]`).check({ force: true });
+  await page.click('#edit-form button[type=submit]');
+  await page.waitForSelector('#modal', { state: 'hidden', timeout: 3000 }).catch(() => problems.push('edit: dialog did not close after Save'));
+  const p1 = await page.evaluate(() => { const p = __mono.ui.state.players[1]; return [p.name, p.token, p.color]; });
+  if (p1.join() !== ['Maria', tok, col].join()) problems.push('edit: player not updated: ' + p1.join());
+  if (!(await page.locator('#players .pl >> nth=1').innerText()).includes('Maria')) problems.push('edit: Players list did not show the new name');
+  const tokOnBoard = await page.evaluate(() => document.querySelectorAll('#board .tok[data-p="1"]').length);
+  if (tokOnBoard !== 1) problems.push('edit: token missing from the board');
+  // Undo puts the old look back
+  await page.keyboard.press('u'); await page.waitForTimeout(200);
+  if ((await page.evaluate(() => __mono.ui.state.players[1].name)) === 'Maria') problems.push('edit: Undo did not revert the change');
+  // survives a reload
+  await page.evaluate(() => __mono.dispatch({ type: 'EDIT_PLAYER', id: 2, name: 'Zed', token: __mono.ui.state.players[2].token, color: __mono.ui.state.players[2].color }));
+  await page.waitForTimeout(300); await page.reload(); await page.click('#resume-box [data-ui=resume]');
+  await page.waitForSelector('#game:not([hidden])');
+  if (!(await page.locator('#players').innerText()).includes('Zed')) problems.push('edit: new name lost after reload');
+  console.log('Edit players test done');
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }

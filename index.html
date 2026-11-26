@@ -248,6 +248,11 @@ body:not(.show-log) .log{display:none}
 .pl.cur{box-shadow:inset 4px 0 0 var(--red)}
 .pl .disc{width:30px;height:30px;grid-row:span 2}
 .pl .name{font-family:var(--cond);font-stretch:condensed;font-weight:600;font-size:1.06rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .plr{display:flex;align-items:center;gap:6px;justify-self:end}
+.edit-pl{all:unset;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;color:var(--muted);cursor:pointer}
+.edit-pl:hover{color:var(--ink);background:var(--line-soft)}.edit-pl:focus-visible{outline:3px solid var(--red);outline-offset:1px}
+.edit-form label.fld{display:block;font-weight:600;margin:10px 0 4px}.edit-form input[type=text]{width:100%;box-sizing:border-box}
+.pick input:disabled+.disc,.pick input:disabled+.sw{opacity:.28}.pick input:disabled{cursor:not-allowed}
 .pl .cash{font-family:var(--cond);font-stretch:condensed;font-size:1.22rem;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
 .pl .holdings{grid-column:2/4;display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-height:16px}
 .chip{width:11px;height:16px;background:var(--g);border:1px solid var(--line);padding:0;cursor:pointer;border-radius:1px}
@@ -1103,6 +1108,20 @@ function goBankrupt(s, pi){
    3. REDUCER: (state, action) -> new state. Never mutates the input.
    ===================================================================== */
 const HANDLERS = {
+  /* Change a player's name, token or color. Everyone must stay distinct. */
+  EDIT_PLAYER(s, a){
+    const p = s.players[a.id]; need(p, 'No such player.');
+    const name = String(a.name||'').replace(/\s+/g,' ').trim().slice(0,24);
+    need(name, 'Give the player a name.');
+    const others = s.players.filter(q=>q.id!==p.id);
+    need(!others.some(q=>q.name.toLowerCase()===name.toLowerCase()), `${name} is already taken. Pick another name.`);
+    need(TOKENS[a.token], 'Pick a token.'); need(!others.some(q=>q.token===a.token), 'Another player already has that token.');
+    need(COLORS.some(c=>c.hex===a.color), 'Pick a color.'); need(!others.some(q=>q.color===a.color), 'Another player already has that color.');
+    const old = p.name, changed = name!==old, look = p.token!==a.token || p.color!==a.color;
+    need(changed || look, 'Nothing changed.');
+    p.name = name; p.token = a.token; p.color = a.color;
+    log(s, changed ? `${old} is now ${name}.` : `${name} changed token or color.`);
+  },
   ROLL(s){
     const p = s.players[s.cur];
     need(!busy(s), 'Finish the current decision first.');
@@ -1520,8 +1539,10 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.11.0';
+const APP_VERSION = '2.12.0';
 const RELEASES = [
+  {version:'2.12.0', date:'2026-11-26', title:'Edit players', changes:[
+    'Tap the pencil next to a player to change their name, token or color at any time. Undo works, and tokens and colors already in use are greyed out.']},
   {version:'2.11.0', date:'2026-11-26', title:'Build and Mortgage, money bag and play money', changes:[
     'Build and mortgage is now two buttons, Build and Mortgage, each with its own screen. The keyboard shortcuts are B and M.',
     'With the Free Parking jackpot rule on, a money bag sits on Free Parking and grows as the pot fills.',
@@ -2349,6 +2370,7 @@ function holdingsHTML(s, pi){
   }
   return chips.join('');
 }
+const ICON_EDIT = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2"/></svg>';
 function renderPlayers(s){
   $('#players').innerHTML = s.players.map(p=>{
     const badges = [];
@@ -2359,7 +2381,7 @@ function renderPlayers(s){
     if(p.cards.length) badges.push(`<span class="badge">${p.cards.length} jail card${p.cards.length>1?'s':''}</span>`);
     if(p.bot) badges.push('<span class="badge bot">Computer</span>');
     return `<li class="pl ${p.id===s.cur?'cur':''} ${p.bankrupt?'out':''} ${ui.hl===p.id?'hl':''}" aria-current="${p.id===s.cur?'true':'false'}">
-      <button type="button" class="pl-hl" data-ui="hl" data-p="${p.id}" aria-pressed="${ui.hl===p.id}" aria-label="Show ${esc(p.name)}’s property on the board">${tokenDisc(p)}<span class="name">${esc(p.name)}</span></button><span class="cash">${money(p.cash)}</span>
+      <button type="button" class="pl-hl" data-ui="hl" data-p="${p.id}" aria-pressed="${ui.hl===p.id}" aria-label="Show ${esc(p.name)}’s property on the board">${tokenDisc(p)}<span class="name">${esc(p.name)}</span></button><span class="plr"><button type="button" class="edit-pl" data-ui="editplayer" data-p="${p.id}" aria-label="Edit ${esc(p.name)}" title="Edit name, color or token">${ICON_EDIT}</button><span class="cash">${money(p.cash)}</span></span>
       <div class="holdings">${holdingsHTML(s, p.id)}${badges.join('')}</div></li>`;
   }).join('');
 }
@@ -2659,6 +2681,21 @@ function modalHTML(key){
     return `<h2 id="modal-title">Mortgage</h2><p>${playerLine(s,s.cur)}. Mortgaging pays half the price now, and unmortgaging later costs that plus 10%. Sell the buildings in a color set (under Build) before mortgaging any of it.</p>
       ${managerHTML(s, s.cur, 'mortgage')}<div class="row-btns"><button class="btn" data-ui="close" data-fid="close">Done</button></div>`;
   }
+  if(key.startsWith('edit:')){
+    const p = s.players[+key.slice(5)]; if(!p) return '<p>That player is gone.</p>';
+    const others = s.players.filter(q=>q.id!==p.id), tk = x=>others.find(q=>q.token===x), cl = x=>others.find(q=>q.color===x);
+    return `<h2 id="modal-title">Edit ${esc(p.name)}</h2>
+      <form class="edit-form" id="edit-form" data-p="${p.id}" autocomplete="off">
+        <label class="fld" for="edit-name">Name</label>
+        <input type="text" id="edit-name" maxlength="24" value="${esc(p.name)}" required>
+        <p class="warnline" id="edit-err" role="alert" hidden></p>
+        <div class="fld" id="edit-tok-l">Token</div>
+        <div class="picks tok-picks" role="radiogroup" aria-labelledby="edit-tok-l">${Object.entries(TOKENS).map(([k,x])=>`<label class="pick" title="${x.label}${tk(k)?', used by '+esc(tk(k).name):''}"><input type="radio" name="etok" value="${k}" ${p.token===k?'checked':''} ${tk(k)?'disabled':''} aria-label="${x.label}${tk(k)?', used by '+esc(tk(k).name):''}"><span class="disc" style="--pc:${p.color}">${tokenSVG(k)}</span></label>`).join('')}</div>
+        <div class="fld" id="edit-col-l">Color</div>
+        <div class="picks" role="radiogroup" aria-labelledby="edit-col-l">${COLORS.map(c=>`<label class="pick" title="${c.name}${cl(c.hex)?', used by '+esc(cl(c.hex).name):''}"><input type="radio" name="ecol" value="${c.hex}" ${p.color===c.hex?'checked':''} ${cl(c.hex)?'disabled':''} aria-label="${c.name}${cl(c.hex)?', used by '+esc(cl(c.hex).name):''}"><span class="sw" style="--pc:${c.hex}"></span></label>`).join('')}</div>
+        <div class="row-btns" style="margin-top:14px"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-ui="close">Cancel</button></div>
+      </form>`;
+  }
   if(key==='trade') return tradeComposerHTML(s);
   if(key==='menu'){
     const hasSlot = !!LS.get(KEY_SLOT);
@@ -2891,6 +2928,17 @@ document.addEventListener('change', e=>{
   if(e.target.closest && e.target.closest('.tgrid')){ readTradeForm(); updateTradeSummary(); return; }
   if(e.target.id==='trade-to'){ readTradeForm(); ui.tradeDraft.to = +e.target.value; ui.tradeDraft.get = {cash:0,props:[],cards:[]}; syncModal(); }
 });
+document.addEventListener('change', e=>{
+  if(e.target.name==='ecol'){ $$('#edit-form .tok-picks .disc').forEach(d=>d.style.setProperty('--pc', e.target.value)); }
+});
+document.addEventListener('submit', e=>{
+  const f = e.target.closest && e.target.closest('#edit-form'); if(!f) return;
+  e.preventDefault();
+  const act = {type:'EDIT_PLAYER', id:+f.dataset.p, name:$('#edit-name').value, token:(f.querySelector('input[name=etok]:checked')||{}).value, color:(f.querySelector('input[name=ecol]:checked')||{}).value};
+  let err = ''; try{ reduce(ui.state, act); }catch(x){ if(x instanceof RuleError) err = x.message; else throw x; }
+  if(err){ const el = $('#edit-err'); el.textContent = err; el.hidden = false; return; }
+  ui.userModal = null; dispatch(act).then(()=>{ syncModal(); toast('Saved.'); });
+});
 document.addEventListener('input', e=>{ if(e.target.closest && e.target.closest('.tgrid') && e.target.dataset.cash){ readTradeForm(); updateTradeSummary(); } });
 document.addEventListener('keydown', e=>{
   if(e.target.matches && e.target.matches('.bidder input') && e.key==='Enter'){ e.preventDefault(); e.target.parentElement.querySelector('[data-ui="customBid"]').click(); }
@@ -2909,6 +2957,7 @@ function uiCommand(cmd, el){
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
     case 'hl': { const id = +el.dataset.p; ui.hl = ui.hl===id ? null : id; renderBoardMarks(s); renderPlayers(s); $(`.pl-hl[data-p="${id}"]`)?.focus(); } break;
     case 'install': if(ui.installEvt){ ui.installEvt.prompt(); ui.installEvt.userChoice.finally(()=>{ ui.installEvt = null; updateInstall(); if(ui.userModal==='menu') syncModal(); }); } break;
+    case 'editplayer': if(requiredModal(s)) toast('Finish the current decision first.'); else openUser('edit:'+el.dataset.p); break;
     case 'build': openUser('build'); break;
     case 'mortgage': openUser('mortgage'); break;
     case 'trade': ui.tradeDraft = null; ui.tradeOpen = new Set(); openUser('trade'); break;
@@ -3134,6 +3183,16 @@ function runTests(){
     eq(s.fx.filter(f=>f.type==='money'), [{type:'money', from:0, to:1, amount:4}]);
     s = base(); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'}); s = R(s,{type:'BUY'});
     eq(s.fx.filter(f=>f.type!=='sound'), [{type:'money', from:0, to:null, amount:60}, {type:'sold', space:3}]);
+  });
+  t('Editing a player changes name, token and color and keeps them unique', ()=>{
+    let s = base(); const tk = Object.keys(TOKENS), cl = COLORS.map(c=>c.hex);
+    s = R(s,{type:'EDIT_PLAYER', id:0, name:'  Ann   Lee ', token:tk[5], color:cl[7]});
+    eq(s.players[0].name, 'Ann Lee'); eq(s.players[0].token, tk[5]); eq(s.players[0].color, cl[7]);
+    throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:'ann lee', token:s.players[1].token, color:s.players[1].color}));
+    throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:'Bo', token:tk[5], color:s.players[1].color}));
+    throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:'Bo', token:s.players[1].token, color:cl[7]}));
+    throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:'   ', token:s.players[1].token, color:s.players[1].color}));
+    throws(()=>R(s,{type:'EDIT_PLAYER', id:1, name:s.players[1].name, token:s.players[1].token, color:s.players[1].color}));
   });
   t('Passing Go pays $200', ()=>{ let s = base(); s.players[0].pos = 38; s.debugDice = [[2,3]]; s = R(s,{type:'ROLL'}); eq(s.players[0].pos, 3); eq(s.pending.type,'buy'); eq(s.players[0].cash, 1700); });
   t('Buying a property', ()=>{ let s = base(); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'}); s = R(s,{type:'BUY'}); eq(s.props[3].owner, 0); eq(s.players[0].cash, 1440); });
