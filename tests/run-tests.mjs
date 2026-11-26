@@ -211,10 +211,10 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.reload(); await page.waitForTimeout(500);
   if (await page.evaluate(() => document.documentElement.dataset.theme) !== 'dark') problems.push('theme: dark was not restored after reload');
   await page.evaluate(() => { localStorage.setItem('mono.theme', 'light'); });
-  // Turn animations off and confirm no dice toss, in a fresh game after the reload.
-  await page.click('input[name=count][value="2"]', { force: true });
-  await page.uncheck('#spinfirst');
-  await page.click('button[type=submit]');
+  // Turn animations off and confirm no dice toss. The reloaded app goes straight back into the game.
+  await page.waitForSelector('#game:not([hidden])', { timeout: 3000 });
+  await page.evaluate(() => { const first = __mono.state.cur; for (let k = 0; k < 40; k++) { const s = __mono.state; if (s.cur !== first && s.phase === 'start' && !s.pending && !s.debts.length) break; __mono.autoplay(1); } });
+  await page.waitForTimeout(1500);
   await page.keyboard.press('?');
   await page.waitForSelector('#modal[open] [data-ui=motion]', { timeout: 5000 });
   await page.click('#modal[open] [data-ui=motion][data-v=off]');
@@ -333,7 +333,7 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   const spinMs = Date.now() - t0;
   if (spinMs < 4000) problems.push(`spinner: only ${spinMs} ms`);
   const bar = await page.locator('.toolbar button').evaluateAll(els => els.map(e => (e.getAttribute('aria-label') || e.innerText).trim()));
-  if (bar.join('|') !== 'Undo|Full screen|Game menu') problems.push('toolbar: expected Undo, Full screen, Game menu but saw ' + bar.join('|'));
+  if (bar.join('|') !== 'Undo|Full screen|Sound is on. Turn sound off|Game menu') problems.push('toolbar: expected Undo, Full screen, sound, Game menu but saw ' + bar.join('|'));
   if (await page.locator('#log').isVisible()) problems.push('log: visible by default');
   const centerImg = await page.evaluate(() => getComputedStyle(document.querySelector('#board .center')).backgroundImage);
   if (centerImg !== 'none') problems.push('board: the center still has a pattern: ' + centerImg);
@@ -352,6 +352,35 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('#modal[open] [data-ui=log][data-v=off]');
   if (await page.locator('#log').isVisible()) problems.push('log: still visible after hiding');
   console.log(`Screen test: toolbar ${bar.join(', ')}, spinner ${spinMs} ms, roll button ${colors}`);
+  await ctx.close();
+}
+
+// 11. Reopening resumes the game; sound button; theme on the home screen; phone toolbar at the top.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await page.goto(url);
+  await page.click('.setup-theme [data-v=dark]');
+  if ((await page.evaluate(() => document.documentElement.dataset.theme)) !== 'dark') problems.push('home: the theme buttons did not switch to dark');
+  await page.click('.setup-theme [data-v=light]');
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const pos = await page.evaluate(() => ({ bar: document.querySelector('.toolbar').getBoundingClientRect().top, board: document.querySelector('#board').getBoundingClientRect().top }));
+  if (!(pos.bar < pos.board)) problems.push('phone: the toolbar is not above the board');
+  await page.click('#sound-btn');
+  if ((await page.evaluate(() => localStorage.getItem('mono.muted'))) !== '1') problems.push('sound button: did not mute');
+  if (!/off/.test(await page.getAttribute('#sound-btn', 'aria-label'))) problems.push('sound button: label did not change');
+  await page.click('#sound-btn');
+  if ((await page.evaluate(() => localStorage.getItem('mono.muted'))) !== '0') problems.push('sound button: did not unmute');
+  await page.evaluate(() => { __mono.state.players[0].cash = 1234; __mono.state.players[1].cash = 1234; });
+  await page.click('#menu-btn'); await page.click('#modal[open] [data-ui=close]'); // forces a save
+  await page.waitForTimeout(400);
+  await page.reload();
+  await page.waitForSelector('#game:not([hidden])', { timeout: 4000 }).catch(() => problems.push('resume: the game did not reopen on its own'));
+  const cash = await page.evaluate(() => __mono.state && __mono.state.players[0].cash);
+  if (cash === undefined || cash === null) problems.push('resume: no game state after reopening');
+  console.log('Resume, sound button, home theme and phone toolbar test done');
   await ctx.close();
 }
 
