@@ -285,9 +285,15 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .hint{font-size:.88rem;color:var(--muted)}
 .warnline{color:var(--red)}
 /* title deed */
-#throw{position:fixed;inset:0;z-index:2000;pointer-events:none;background:rgba(10,20,35,.38);overflow:hidden}
-.tdie{box-sizing:border-box;position:absolute;left:0;top:0;background:#fff;border:2px solid #13243D;border-radius:16%;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);box-shadow:0 8px 22px rgba(0,0,0,.35);will-change:transform}
-.tdie i{width:78%;height:78%;border-radius:50%;background:#13243D;place-self:center}
+#throw{position:fixed;inset:0;z-index:2000;pointer-events:none;background:rgba(10,20,35,.42);overflow:hidden}
+#throw.armed{pointer-events:auto;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.tdie{position:absolute;left:0;top:0;perspective:700px;will-change:transform}
+.tdie .cube{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.tdie .face{position:absolute;inset:0;box-sizing:border-box;background:#fff;border:1.5px solid #B9C6D2;border-radius:12%;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:inset 0 0 14px rgba(19,36,61,.22)}
+.tdie .face i{width:76%;height:76%;border-radius:50%;background:#13243D;place-self:center}
+.tshadow{position:absolute;left:10%;top:10%;width:80%;height:80%;border-radius:20%;background:#000;filter:blur(9px)}
+.throw-tip{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);top:calc(64px + env(safe-area-inset-top));margin:0;padding:8px 14px;border-radius:999px;background:#13243D;text-align:center;color:#fff;font-weight:600;font-size:1rem;pointer-events:none}
+.throw-cancel,#throw .throw-cancel{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;background:#fff;color:#13243D;border-color:#fff}
 .deed-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 6px}.deed-nav span{min-width:5.5em;text-align:center;color:var(--muted)}.deed-tip{text-align:center;margin:0 0 8px;font-size:.8rem}
 .deed{background:var(--card);color:var(--card-ink);border:1.5px solid var(--card-ink);width:min(270px,100%);margin:4px auto 12px;font-family:var(--cond);font-stretch:condensed;padding:8px}
 .deed .hd{background:var(--g,#fff);border:1.5px solid var(--card-ink);padding:9px 8px;text-align:center;color:var(--gt,#13243D)}
@@ -1506,8 +1512,12 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.8.0';
+const APP_VERSION = '2.9.0';
 const RELEASES = [
+  {version:'2.9.0', date:'2026-11-26', title:'3D dice you pick up and throw', changes:[
+    'Immersive rolling now uses 3D dice that tumble across the screen.',
+    'Tapping Roll dice picks the dice up. They follow your finger, then a flick throws them that way, a tap drops them, and a shake throws them too. Put them down cancels.',
+    'Shaking works more reliably: it now measures the force of the shake.']},
   {version:'2.8.0', date:'2026-11-26', title:'Immersive dice rolling', changes:[
     'New Dice rolling choice in the Game menu: Classic (tap Roll dice, as before) or Immersive.',
     'Immersive throws the dice across the whole screen and they bounce off its edges. On a phone or tablet you can also shake the device or flick the center panel to roll. Tapping Roll dice still works. Classic stays the default.']},
@@ -1783,98 +1793,199 @@ async function animateDice(f, fast){
   if(f.dice[0]===f.dice[1] && !f.util) await doublesFlourish();
   else await sleep(100);
 }
-/* Immersive roll: two big dice are thrown across the whole screen and bounce off its edges.
-   The faces were already chosen by the game; the physics here is only for show. */
+/* Immersive roll. Tapping Roll dice picks up two 3D dice; a shake, flick or tap throws them across the
+   whole screen, where they bounce off the edges. The faces were already chosen by the game: the
+   tumble is only for show and always settles on the rolled numbers. */
+const immersiveOn = () => ui.rollStyle==='immersive' && !reducedMotion();
+const FACE_TURN = {1:[0,0], 2:[0,-90], 3:[-90,0], 4:[90,0], 5:[0,90], 6:[0,180]}; // [rotateX, rotateY] that brings face v to the front
+const dieSize = () => Math.round(Math.max(64, Math.min(112, Math.min(innerWidth, innerHeight)*0.19)));
+function newDie(layer, size, x, y){
+  const el = document.createElement('div'); el.className = 'tdie'; el.style.width = el.style.height = size+'px';
+  const sides = [[1,'rotateY(0deg)'],[6,'rotateY(180deg)'],[2,'rotateY(90deg)'],[5,'rotateY(-90deg)'],[3,'rotateX(90deg)'],[4,'rotateX(-90deg)']];
+  el.innerHTML = `<div class="tshadow"></div><div class="cube">${sides.map(([v,tf])=>`<span class="face" style="transform:${tf} translateZ(${size/2}px);padding:${Math.round(size*0.12)}px">${pips(v)}</span>`).join('')}</div>`;
+  layer.appendChild(el);
+  return {el, cube:el.querySelector('.cube'), sh:el.querySelector('.tshadow'), x, y, vx:0, vy:0,
+    ax:Math.random()*360, ay:Math.random()*360, az:Math.random()*360, wx:0, wy:0, wz:0, h:0.5};
+}
+function placeDie(d, size){
+  const h = Math.max(0, d.h||0);
+  d.el.style.transform = `translate(${d.x-size/2}px,${d.y-size/2}px)`;
+  d.cube.style.transform = `scale(${1+0.3*h}) rotateZ(${d.az}deg) rotateX(${d.ax}deg) rotateY(${d.ay}deg)`;
+  d.sh.style.transform = `translate(${6+24*h}px,${10+30*h}px) scale(${1-0.15*h})`;
+  d.sh.style.opacity = String(0.5-0.25*h);
+}
+function newThrowLayer(){
+  const layer = document.createElement('div'); layer.id = 'throw';
+  document.body.appendChild(layer);
+  layer.animate([{opacity:0},{opacity:1}], {duration:140});
+  return layer;
+}
+/* Pick up the dice. They hover, follow a finger or the mouse, and wait to be thrown. */
+function armRoll(action){
+  askMotionPermission();
+  const size = dieSize(), vw = innerWidth, vh = innerHeight, layer = newThrowLayer();
+  layer.classList.add('armed'); layer.setAttribute('role','dialog'); layer.setAttribute('aria-label','Throw the dice');
+  const touch = matchMedia('(pointer:coarse)').matches;
+  layer.innerHTML = `<p class="throw-tip">${touch ? 'Shake, flick or tap to throw the dice.' : 'Flick or click to throw the dice. Space throws too.'}</p><button class="btn small throw-cancel" type="button">Put them down</button>`;
+  const H = ui.held = {layer, size, action, thrown:false, grab:null,
+    ds:[0,1].map(k=>newDie(layer, size, vw/2+(k?0.65:-0.65)*size, vh*0.5))};
+  H.ds.forEach(d=>placeDie(d, size));
+  const hold = now => {
+    if(ui.held!==H || H.thrown) return;
+    H.ds.forEach((d,k)=>{
+      const tx = (H.grab ? H.grab.x : vw/2) + (k?0.65:-0.65)*size, ty = (H.grab ? H.grab.y-size*0.3 : vh*0.5) + Math.sin(now/260+k*1.9)*6;
+      d.x += (tx-d.x)*0.35; d.y += (ty-d.y)*0.35;
+      d.ay += k?1.4:-1.1; d.ax = 15+Math.sin(now/420+k)*20; d.h = 0.45+Math.sin(now/300+k)*0.08;
+      placeDie(d, size);
+    });
+    requestAnimationFrame(hold);
+  };
+  requestAnimationFrame(hold);
+  let pts = [];
+  layer.addEventListener('pointerdown', e=>{
+    if(e.target.closest('.throw-cancel') || H.thrown) return;
+    pts = [[e.clientX, e.clientY, performance.now()]]; H.grab = {x:e.clientX, y:e.clientY};
+    try { layer.setPointerCapture(e.pointerId); } catch(_){}
+  });
+  layer.addEventListener('pointermove', e=>{
+    if(!pts.length) return;
+    pts.push([e.clientX, e.clientY, performance.now()]); if(pts.length>10) pts.shift();
+    H.grab = {x:e.clientX, y:e.clientY};
+  });
+  layer.addEventListener('pointerup', e=>{
+    if(!pts.length || H.thrown) return;
+    const now = performance.now(); pts.push([e.clientX, e.clientY, now]);
+    const p0 = pts.find(p=>now-p[2]<=140) || pts[0]; pts = [];
+    const dx = e.clientX-p0[0], dy = e.clientY-p0[1], dist = Math.hypot(dx,dy), dt = Math.max(16, now-p0[2]), speed = dist/dt*1000;
+    throwHeld(dist>30 && speed>400 ? {vx:dx/dist, vy:dy/dist, speed:speed*1.1} : null);
+  });
+  $('.throw-cancel', layer).addEventListener('click', e=>{ e.stopPropagation(); cancelHeld(); });
+}
+function throwHeld(vel){
+  const H = ui.held; if(!H || H.thrown) return;
+  H.thrown = true; ui.throwVel = vel;
+  dispatch(H.action).finally(()=>{ if(ui.held===H){ H.layer.remove(); ui.held = null; } });
+}
+function cancelHeld(){
+  const H = ui.held; if(!H || H.thrown) return;
+  ui.held = null;
+  H.layer.animate([{opacity:1},{opacity:0}], {duration:160}).finished.finally(()=>H.layer.remove());
+  focusMainAction();
+}
+/* While the dice are held, the keyboard throws or cancels and nothing else reacts. */
+document.addEventListener('keydown', e=>{
+  const H = ui.held; if(!H || H.thrown) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if(e.key==='Escape') cancelHeld();
+  else if(e.key===' ' || e.key==='Enter' || e.key.toLowerCase()==='r') throwHeld(null);
+}, true);
 function throwDiceImmersive(f, show){
   return new Promise(done=>{
-    const vw = innerWidth, vh = innerHeight, size = Math.round(Math.max(64, Math.min(120, Math.min(vw, vh)*0.2))), r = size/2;
-    const layer = document.createElement('div'); layer.id = 'throw'; layer.setAttribute('aria-hidden','true');
-    const ds = [0,1].map(k=>{ const el = document.createElement('span'); el.className = 'tdie'; el.style.width = el.style.height = size+'px'; el.style.padding = Math.round(size*0.14)+'px'; el.innerHTML = pips(1+Math.floor(Math.random()*6)); layer.appendChild(el);
-      return {el, x:vw*(0.38+k*0.24), y:vh*0.82, vx:0, vy:0, a:Math.random()*360, w:0}; });
-    document.body.appendChild(layer);
-    layer.animate([{opacity:0},{opacity:1}], {duration:140, fill:'forwards'});
+    const vw = innerWidth, vh = innerHeight, H = ui.held && ui.held.thrown ? ui.held : null;
+    let layer, ds, size;
+    if(H){ ({layer, ds, size} = H); layer.classList.remove('armed'); $$('.throw-tip,.throw-cancel', layer).forEach(e=>e.remove()); }
+    else { size = dieSize(); layer = newThrowLayer(); ds = [0,1].map(k=>newDie(layer, size, vw*(0.4+k*0.2), vh*0.84)); }
+    layer.setAttribute('aria-hidden','true');
     const tv = ui.throwVel; ui.throwVel = null;
+    const spin = () => (Math.random()<.5?-1:1)*(520+Math.random()*560);
     ds.forEach((d,k)=>{
-      let sp = 1500 + Math.random()*700, ang = -Math.PI/2 + (Math.random()-0.5)*0.9 + (k?0.18:-0.18);
-      if(tv){ sp = Math.min(2600, Math.max(1100, tv.speed)); ang = Math.atan2(tv.vy, tv.vx) + (k?0.14:-0.14); }
-      d.vx = Math.cos(ang)*sp; d.vy = Math.sin(ang)*sp; d.w = (Math.random()<.5?-1:1)*(500+Math.random()*500);
+      let sp = 1500+Math.random()*700, ang = -Math.PI/2 + (Math.random()-0.5)*0.9 + (k?0.18:-0.18);
+      if(tv){ sp = Math.min(2800, Math.max(1100, tv.speed)); ang = Math.atan2(tv.vy, tv.vx) + (k?0.14:-0.14); }
+      d.vx = Math.cos(ang)*sp; d.vy = Math.sin(ang)*sp; d.wx = spin(); d.wy = spin(); d.wz = spin()*0.6;
     });
-    let last = performance.now(), t0 = last, lastFace = 0, lastThud = 0, settled = false;
-    const place = d => { d.el.style.transform = `translate(${d.x-r}px,${d.y-r}px) rotate(${d.a}deg)`; };
-    ds.forEach(place);
-    const finish = async () => {
-      settled = true;
-      ds.forEach((d,k)=>{ d.el.innerHTML = pips(f.dice[k]); });
-      sfx.play('thud'); await sleep(450);
-      show();
-      const out = layer.animate([{opacity:1},{opacity:0}], {duration:220, fill:'forwards'});
-      await out.finished.catch(()=>{}); layer.remove(); done();
-    };
+    const edge = size*0.62, t0 = performance.now();
+    let last = t0, lastThud = 0, settle = null;
+    const thud = (now, force) => { if(now-lastThud>90 && force>160){ lastThud = now; sfx.play('thud'); } };
     const step = now => {
-      if(settled) return;
-      const dt = Math.min(0.033, (now-last)/1000); last = now;
+      const dt = Math.min(0.033, (now-last)/1000), t = (now-t0)/1000; last = now;
       let moving = 0;
       for(const d of ds){
-        const fr = Math.exp(-1.9*dt); d.vx *= fr; d.vy *= fr; d.w *= Math.exp(-1.6*dt);
-        d.x += d.vx*dt; d.y += d.vy*dt; d.a += d.w*dt;
-        let hit = false;
-        const rad = d.a*Math.PI/180, h = r*(Math.abs(Math.cos(rad))+Math.abs(Math.sin(rad)));
-        if(d.x<h){ d.x = h; d.vx = Math.abs(d.vx)*0.78; hit = true; } else if(d.x>vw-h){ d.x = vw-h; d.vx = -Math.abs(d.vx)*0.78; hit = true; }
-        if(d.y<h){ d.y = h; d.vy = Math.abs(d.vy)*0.78; hit = true; } else if(d.y>vh-h){ d.y = vh-h; d.vy = -Math.abs(d.vy)*0.78; hit = true; }
-        if(hit){ d.w += (Math.random()-0.5)*260; if(now-lastThud>90 && Math.hypot(d.vx,d.vy)>160){ lastThud = now; sfx.play('thud'); } }
-        if(Math.hypot(d.vx,d.vy)>50) moving++;
+        const fr = Math.exp(-1.9*dt); d.vx *= fr; d.vy *= fr;
+        d.x += d.vx*dt; d.y += d.vy*dt;
+        if(d.x<edge){ d.x = edge; d.vx = Math.abs(d.vx)*0.78; d.wy += (Math.random()-.5)*400; thud(now, Math.abs(d.vx)); }
+        else if(d.x>vw-edge){ d.x = vw-edge; d.vx = -Math.abs(d.vx)*0.78; d.wy += (Math.random()-.5)*400; thud(now, Math.abs(d.vx)); }
+        if(d.y<edge){ d.y = edge; d.vy = Math.abs(d.vy)*0.78; d.wx += (Math.random()-.5)*400; thud(now, Math.abs(d.vy)); }
+        else if(d.y>vh-edge){ d.y = vh-edge; d.vy = -Math.abs(d.vy)*0.78; d.wx += (Math.random()-.5)*400; thud(now, Math.abs(d.vy)); }
+        if(!settle){
+          const sf = Math.exp(-1.3*dt); d.wx *= sf; d.wy *= sf; d.wz *= sf;
+          d.ax += d.wx*dt; d.ay += d.wy*dt; d.az += d.wz*dt;
+          d.h = Math.abs(Math.sin(t*5.2+0.3))*Math.exp(-1.8*t)*1.1;
+        }
+        if(Math.hypot(d.vx,d.vy)>70) moving++;
       }
-      const [A,B] = ds, dx = B.x-A.x, dy = B.y-A.y, dist = Math.hypot(dx,dy) || 1;
-      if(dist < size){ const nx = dx/dist, ny = dy/dist, push = (size-dist)/2;
+      const [A,B] = ds, dx = B.x-A.x, dy = B.y-A.y, dist = Math.hypot(dx,dy) || 1, gap = size*1.08;
+      if(dist<gap){ const nx = dx/dist, ny = dy/dist, push = (gap-dist)/2;
         A.x -= nx*push; A.y -= ny*push; B.x += nx*push; B.y += ny*push;
         const rel = (B.vx-A.vx)*nx + (B.vy-A.vy)*ny;
-        if(rel<0){ A.vx += rel*nx; A.vy += rel*ny; B.vx -= rel*nx; B.vy -= rel*ny; if(now-lastThud>90){ lastThud = now; sfx.play('thud'); } } }
-      ds.forEach(place);
-      if(now-lastFace>85){ lastFace = now; ds.forEach(d=>{ d.el.innerHTML = pips(1+Math.floor(Math.random()*6)); }); }
-      if(!moving || now-t0>2800){
-        ds.forEach(d=>{ d.vx = d.vy = d.w = 0; d.a = Math.round(d.a/90)*90; place(d); });
-        finish(); return;
+        if(rel<0){ A.vx += rel*nx; A.vy += rel*ny; B.vx -= rel*nx; B.vy -= rel*ny; thud(now, -rel); } }
+      if(!settle && (!moving || t>2.4)){
+        // Turn each die so the rolled number faces up, finishing the tumble in the same direction it was going.
+        settle = {t:now, from:ds.map(d=>({ax:d.ax, ay:d.ay, az:d.az, h:d.h})), to:ds.map((d,k)=>{
+          const [tx,ty] = FACE_TURN[f.dice[k]];
+          const near = (cur, target, w) => { let v = target + 360*Math.round((cur-target)/360); if(w>0 && v<cur) v += 360; if(w<0 && v>cur) v -= 360; return v; };
+          return {ax:near(d.ax, tx, d.wx), ay:near(d.ay, ty, d.wy), az:near(d.az, Math.round(d.az/90)*90 + (Math.random()-.5)*24, 0)};
+        })};
       }
+      if(settle){
+        const p = Math.min(1, (now-settle.t)/480), e = 1-Math.pow(1-p, 3);
+        ds.forEach((d,k)=>{ const a = settle.from[k], b = settle.to[k];
+          d.ax = a.ax+(b.ax-a.ax)*e; d.ay = a.ay+(b.ay-a.ay)*e; d.az = a.az+(b.az-a.az)*e; d.h = a.h*(1-e);
+          d.vx *= 0.9; d.vy *= 0.9; });
+        ds.forEach(d=>placeDie(d, size));
+        if(p>=1){ finish(); return; }
+      } else ds.forEach(d=>placeDie(d, size));
       requestAnimationFrame(step);
+    };
+    const finish = async () => {
+      layer.dataset.faces = f.dice.join(',');
+      sfx.play('thud'); await sleep(520);
+      show();
+      await layer.animate([{opacity:1},{opacity:0}], {duration:220, fill:'forwards'}).finished.catch(()=>{});
+      layer.remove(); if(ui.held && ui.held.layer===layer) ui.held = null; done();
     };
     requestAnimationFrame(step);
   });
 }
-/* Shake or flick to roll (Immersive style, phones and tablets). Tapping Roll dice always works. */
+/* Shake to roll (Immersive style, phones and tablets). A shake throws dice that are held, or
+   rolls straight away when Roll dice is showing. Tapping Roll dice always works. */
 function rollButton(){
   const s = ui.state; if(!s || $('#game').hidden || $('#modal').open || $('#confirm').open || $('#whatsnew').open || ui.animating || ui.spin || s.phase==='over') return null;
   if(s.players[s.cur].bot) return null;
   const b = $(`#center [data-a*='"ROLL"'], #center [data-a*='"JAIL_ROLL"']`);
   return b && !b.disabled ? b : null;
 }
+function shakeRoll(){
+  if(ui.held && !ui.held.thrown){ throwHeld(null); return true; }
+  const b = rollButton(); if(!b) return false;
+  ui.throwVel = null; dispatch(JSON.parse(b.dataset.a)); return true;
+}
 function startMotionWatch(){
   if(ui.motionWatch || typeof DeviceMotionEvent==='undefined') return; ui.motionWatch = true;
-  let peaks = [], coolUntil = 0, prev = null;
+  let peaks = [], coolUntil = 0;
   addEventListener('devicemotion', e=>{
-    if(ui.rollStyle!=='immersive') return;
-    const a = e.accelerationIncludingGravity; if(!a || a.x==null) return;
-    const now = performance.now(); if(now<coolUntil){ prev = null; return; }
-    const m = Math.hypot(a.x, a.y, a.z||0);
-    if(prev!=null && Math.abs(m-prev) > 14){ peaks.push(now); peaks = peaks.filter(x=>now-x<700);
-      if(peaks.length>=3){ const b = rollButton(); peaks = []; if(b){ coolUntil = now+2500; ui.throwVel = null; b.click(); } } }
-    prev = m;
+    if(!immersiveOn()) return;
+    const now = performance.now(); if(now<coolUntil) return;
+    // Force of the jolt in m/s², without gravity. Older devices only report it with gravity included.
+    const a = e.acceleration, g = e.accelerationIncludingGravity;
+    let m;
+    if(a && a.x!=null) m = Math.hypot(a.x, a.y, a.z||0);
+    else if(g && g.x!=null) m = Math.abs(Math.hypot(g.x, g.y, g.z||0) - 9.81);
+    else return;
+    if(m<11) return;
+    if(peaks.length && now-peaks[peaks.length-1]<90) return;
+    peaks.push(now); peaks = peaks.filter(x=>now-x<900);
+    if(peaks.length>=2){ peaks = []; if(shakeRoll()) coolUntil = now+2500; }
   });
 }
-async function askMotionPermission(){
-  if(typeof DeviceMotionEvent==='undefined') return 'none';
+function askMotionPermission(){
+  if(typeof DeviceMotionEvent==='undefined') return Promise.resolve('none');
   if(typeof DeviceMotionEvent.requestPermission==='function'){
-    try { ui.motionOk = (await DeviceMotionEvent.requestPermission())==='granted'; } catch(e){ ui.motionOk = false; }
-  } else ui.motionOk = true;
-  startMotionWatch(); return ui.motionOk ? 'ok' : 'denied';
+    if(ui.motionOk===true){ startMotionWatch(); return Promise.resolve('ok'); }
+    // Must be called straight from a tap, so no await before it.
+    return DeviceMotionEvent.requestPermission().then(r=>{ ui.motionOk = r==='granted'; if(ui.motionOk) startMotionWatch(); return ui.motionOk ? 'ok' : 'denied'; }).catch(()=>{ ui.motionOk = false; return 'denied'; });
+  }
+  ui.motionOk = true; startMotionWatch(); return Promise.resolve('ok');
 }
-(function wireFlick(){
-  let st = null;
-  const c = document;
-  c.addEventListener('touchstart', e=>{ st = (ui.rollStyle==='immersive' && e.touches.length===1 && e.target.closest && e.target.closest('#center') && !e.target.closest('button,a,input,select,summary')) ? {x:e.touches[0].clientX, y:e.touches[0].clientY, t:performance.now()} : null; }, {passive:true});
-  c.addEventListener('touchend', e=>{ if(!st) return; const q = e.changedTouches[0], dt = Math.max(16, performance.now()-st.t), dx = q.clientX-st.x, dy = q.clientY-st.y; const o = st; st = null;
-    const dist = Math.hypot(dx,dy), speed = dist/dt*1000;
-    if(dist>70 && speed>600 && dt<450){ const b = rollButton(); if(b){ ui.throwVel = {vx:dx/dist, vy:dy/dist, speed:speed*0.9}; b.click(); } } }, {passive:true});
-})();
 if(ui.rollStyle==='immersive' && typeof DeviceMotionEvent!=='undefined'){
   if(typeof DeviceMotionEvent.requestPermission!=='function') startMotionWatch();
   else document.addEventListener('click', ()=>{ if(ui.rollStyle==='immersive' && ui.motionOk==null) askMotionPermission(); }, {once:true, capture:true});
@@ -2567,7 +2678,7 @@ function modalHTML(key){
       <p class="hint">Dark changes the screen around the board. The board itself stays white.</p>
       <h3>Dice rolling</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Dice rolling">${[['classic','Classic'],['immersive','Immersive']].map(([v,l])=>`<button class="btn small ${ui.rollStyle===v?'primary':''}" data-ui="rollstyle" data-v="${v}" aria-pressed="${ui.rollStyle===v}">${l}</button>`).join('')}</div>
-      <p class="hint">Classic: tap Roll dice. Immersive: the dice are thrown across the whole screen and bounce off its edges. On a phone or tablet you can also shake the device or flick the center panel to roll. Tapping Roll dice always works.</p>
+      <p class="hint">Classic: tap Roll dice and they roll right away. Immersive: tap Roll dice to pick up the 3D dice, then shake your phone, flick, or tap to throw them across the screen. Shaking also rolls without tapping first.</p>
       <h3>Animations</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
       <p class="hint">Dice, hops and flying cash.</p>
@@ -2767,7 +2878,10 @@ document.addEventListener('click', e=>{
   sfx.ensure();
   const b = e.target.closest('[data-a],[data-ui],.space');
   if(!b || b.disabled) return;
-  if(b.dataset.a){ dispatch(JSON.parse(b.dataset.a)); return; }
+  if(b.dataset.a){ const act = JSON.parse(b.dataset.a);
+    if((act.type==='ROLL' || act.type==='JAIL_ROLL') && immersiveOn() && ui.state && !ui.state.players[ui.state.cur].bot && !ui.animating){
+      if(ui.held) throwHeld(null); else armRoll(act); return; }
+    dispatch(act); return; }
   if(b.dataset.ui){ uiCommand(b.dataset.ui, b); return; }
   if(b.classList.contains('space')) openUser('deed:'+b.dataset.i);
 });
@@ -2785,7 +2899,7 @@ function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
     case 'rollstyle': ui.rollStyle = el.dataset.v==='immersive' ? 'immersive' : 'classic'; LS.set(KEY_ROLL, ui.rollStyle); syncModal();
-      if(ui.rollStyle==='immersive'){ const touch = matchMedia('(pointer:coarse)').matches; askMotionPermission().then(r=>{ toast(touch ? (r==='denied' ? 'Immersive rolls on. Shaking is blocked, but flicking and tapping work.' : 'Immersive rolls on. Shake, flick or tap to roll.') : 'Immersive rolls on.'); }); }
+      if(ui.rollStyle==='immersive'){ const touch = matchMedia('(pointer:coarse)').matches; askMotionPermission().then(r=>{ toast(touch ? (r==='denied' ? 'Immersive rolls on. Motion access is off, so flick or tap to throw.' : 'Immersive rolls on. Tap Roll dice, then shake, flick or tap.') : 'Immersive rolls on. Click Roll dice, then flick or click.'); }); }
       else toast('Classic rolls on.'); break;
     case 'motion': ui.motion = el.dataset.v; LS.set(KEY_MOTION, ui.motion); applyMotion(); syncModal(); toast(ui.motion==='on' ? 'Animations are on.' : 'Animations are off.'); break;
     case 'theme': ui.theme = el.dataset.v==='dark' ? 'dark' : 'light'; LS.set(KEY_THEME, ui.theme); applyTheme(); if(ui.state) syncModal(); toast(ui.theme==='dark' ? 'Dark theme.' : 'Light theme.'); break;
