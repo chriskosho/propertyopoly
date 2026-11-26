@@ -29,6 +29,8 @@ Once it's installed it opens full screen and works with no internet connection. 
 - Autosave, manual save and load, export and import as a JSON file
 - Undo within the current turn
 - Sound effects generated in the browser
+- A monopoly celebration, mortgage reminders at the start and end of a turn, and a "Still for sale" panel
+- A trade screen that groups property by set, suggests set-completing trades, previews what a trade changes and shows each property's card
 - Animations: tossed dice, a doubles flourish, hopping tokens, cash flying between players, flipping cards, and a "Sold" stamp (on by default; turn them off in the Game menu)
 - TV mode for a big screen, and keyboard shortcuts (Space to roll, Enter to end the turn, U to undo, ? for the full list)
 - Installable on phones, tablets and computers, and playable offline

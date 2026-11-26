@@ -57,7 +57,6 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   let turnsEnded = 0, guard = 0;
   while (turnsEnded < 6 && guard++ < 200) {
     const st = await page.evaluate(() => { const s = __mono.state; return { pend: s.pending && s.pending.type, debts: s.debts.length }; });
-    if (await page.locator('#modal[open] [data-ui=handoffOk]').count()) { await page.click('#modal[open] [data-ui=handoffOk]'); continue; }
     if (st.pend === 'buy') { await page.click('#modal[open] [data-fid=buy]:not([disabled]), #modal[open] [data-fid=decl]'); await page.waitForTimeout(2200); continue; }
     if (st.pend || st.debts) { await page.evaluate(() => __mono.autoplay(1)); continue; }
     const btn = page.locator('#center .acts .btn.primary').first();
@@ -70,7 +69,6 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   console.log(`Interface test: ${turnsEnded} turns played through the UI`);
 
   // 3. TV mode toggle (shortcuts are off while a dialog is open, so close it first)
-  if (await page.locator('#modal[open] [data-ui=handoffOk]').count()) await page.click('#modal[open] [data-ui=handoffOk]');
   await page.keyboard.press('v');
   if (!(await page.evaluate(() => document.body.classList.contains('tv')))) problems.push('TV mode did not turn on');
   await page.keyboard.press('v');
@@ -147,7 +145,6 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('input[name=count][value="2"]', { force: true });
   await page.uncheck('#spinfirst');
   await page.click('button[type=submit]');
-  await page.click('#modal[open] [data-ui=handoffOk]');
   await page.keyboard.press('Space');
   await page.waitForTimeout(2500);
   const before = await page.evaluate(() => __mono.state.log.length);
@@ -186,7 +183,6 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('input[name=count][value="2"]', { force: true });
   await page.uncheck('#spinfirst');
   await page.click('button[type=submit]');
-  await page.click('#modal[open] [data-ui=handoffOk]');
   const roll = async () => {
     await page.evaluate(() => { __mono.ui.state.debugDice = [[3, 4]]; });
     await page.keyboard.press('Space');
@@ -219,7 +215,6 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('input[name=count][value="2"]', { force: true });
   await page.uncheck('#spinfirst');
   await page.click('button[type=submit]');
-  await page.click('#modal[open] [data-ui=handoffOk]');
   await page.keyboard.press('?');
   await page.waitForSelector('#modal[open] [data-ui=motion]', { timeout: 5000 });
   await page.click('#modal[open] [data-ui=motion][data-v=off]');
@@ -238,7 +233,6 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await page.click('input[name=count][value="2"]', { force: true });
   await page.uncheck('#spinfirst');
   await page.click('button[type=submit]');
-  await page.click('#modal[open] [data-ui=handoffOk]');
   await page.evaluate(() => {
     const s = __mono.state; const deck = deckOf('chance');
     s.players[0].pos = 7; __mono.ui.displayPos = s.players.map(p => p.pos);
@@ -261,6 +255,62 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   if (hops < 3) problems.push(`card move: the token was seen on only ${hops} spaces while moving`);
   if (!/Reading Railroad|Pennsylvania|B\. ?& ?O|Short Line|Railroad/.test(title)) problems.push('card move: landing card did not appear after the move: ' + title);
   console.log(`Card move test: dialog closed while moving, token seen on ${hops} spaces, then "${title}"`);
+  await ctx.close();
+}
+
+// 9. Turn passes without a pass-the-device screen; mortgage reminder; for-sale panel; trade screen; monopoly celebration.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1280, height: 860 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.waitForTimeout(500);
+  if (await page.locator('#modal[open]').count()) problems.push('turn: a dialog covers the board at the start of the game');
+  const toast1 = await page.locator('#toast div').allInnerTexts();
+  if (!toast1.some(x => /’s turn/.test(x))) problems.push('turn: no turn note at the start: ' + toast1.join('|'));
+  // For sale panel
+  const fs = await page.locator('#forsale .fs-count').innerText();
+  if (!/28 of 28/.test(fs)) problems.push('for sale: expected 28 of 28 at the start, saw ' + fs);
+  // Mortgage reminder at the start of a turn
+  await page.evaluate(() => { const s = __mono.state; s.cur = 0; s.props[1].owner = 0; s.props[1].mortgaged = true; s.props[3].owner = 0; render(); });
+  const note = await page.locator('.mortnote').innerText().catch(() => '');
+  if (!/1 mortgaged property/.test(note)) problems.push('mortgage: no reminder in the center panel: ' + note);
+  if (!/1 mortgaged/.test(await page.locator('#players').innerText())) problems.push('mortgage: no badge in the player list');
+  const fs2 = await page.locator('#forsale .fs-count').innerText();
+  if (!/26 of 28/.test(fs2)) problems.push('for sale: expected 26 of 28 after two are owned, saw ' + fs2);
+  // Trade screen: the other player owns the set-completing property
+  await page.evaluate(() => { const s = __mono.state; s.props[1].mortgaged = false; s.props[3].owner = 1; s.props[6].owner = 0; s.props[8].owner = 1; s.props[9].owner = 0; render(); });
+  await page.click('[data-ui=trade]');
+  await page.waitForSelector('#modal[open] .tneeds');
+  const needs = await page.locator('#modal .tneeds').innerText();
+  if (!/Baltic Avenue/.test(needs)) problems.push('trade: set-completing property not suggested: ' + needs);
+  await page.click('#modal .tneeds [data-ui=tradeAdd]');
+  await page.waitForSelector('#modal input[data-trade=get][data-prop="3"]:checked');
+  const impact = await page.locator('#trade-impact').innerText();
+  if (!/completes the set/i.test(impact)) problems.push('trade: summary does not say the set is completed: ' + impact);
+  await page.click('#modal [data-ui=tradeCard][data-i="3"]');
+  const cardShown = await page.locator('#modal .tcard[data-i="3"]').isVisible();
+  const cardText = await page.locator('#modal .tcard[data-i="3"]').innerText();
+  if (!cardShown || !/hotel/i.test(cardText)) problems.push('trade: card with house and hotel rents is not shown');
+  await page.fill('#modal input[data-trade=give][data-cash]', '120');
+  const impact2 = await page.locator('#trade-impact').innerText();
+  if (!/gives \$120/.test(impact2)) problems.push('trade: summary did not update after typing cash: ' + impact2);
+  await page.click('#modal [data-ui=tradeSend]');
+  await page.waitForSelector('#modal[open] [data-ui=tradeShow]');
+  await page.click('#modal [data-ui=tradeShow]');
+  const review = await page.locator('#modal').innerText();
+  if (!/What this trade changes/.test(review) || !/Show the card/.test(review)) problems.push('trade: review screen lacks the impact summary or card');
+  // Accept: monopoly celebration plays and the set is complete
+  await page.evaluate(() => { window.__sawBanner = false; const iv = setInterval(() => { if (document.querySelector('#board .mono-banner')) window.__sawBanner = true; }, 50); window.__bi = iv; });
+  await page.click('#modal [data-a*=TRADE_ACCEPT]');
+  await page.waitForFunction(() => window.__sawBanner, null, { timeout: 4000 }).catch(() => {});
+  const saw = await page.evaluate(() => window.__sawBanner);
+  if (!saw) problems.push('monopoly: no celebration banner appeared');
+  await page.waitForFunction(() => !__mono.ui.animating, null, { timeout: 8000 }).catch(() => {});
+  const confettiLeft = await page.locator('#board .confetti, #board .mono-banner').count();
+  if (confettiLeft) problems.push('monopoly: celebration left elements on the board');
+  console.log('Turn, reminder, for-sale, trade and monopoly test done');
   await ctx.close();
 }
 
