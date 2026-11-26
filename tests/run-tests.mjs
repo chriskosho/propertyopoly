@@ -630,6 +630,41 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
+// 17. Themes: pick on the new game screen, switch in the menu, saved with the game.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 1100, height: 860 } });
+  await page.goto(url);
+  const cards = await page.locator('#theme-picks .theme-card').allInnerTexts();
+  if (cards.length !== 3 || !/Classic/.test(cards[0]) || !/Texas/.test(cards[1]) || !/United States/.test(cards[2])) problems.push('themes: expected Classic, Texas, United States on the setup screen: ' + cards.join(' | '));
+  if (!(await page.locator('#theme-picks input[value=classic]').isChecked())) problems.push('themes: Classic should be the default');
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.locator('#theme-picks .theme-card', { hasText: 'Texas' }).click();
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const boardText = () => page.locator('#board').innerText();
+  let bt = await boardText();
+  if (!/Austin/.test(bt) || !/Houston/.test(bt) || /Boardwalk/.test(bt) || !/Property Tax/.test(bt)) problems.push('themes: the Texas board has the wrong names');
+  if (!/Texas edition/.test(await page.locator('#center .masthead').innerText())) problems.push('themes: masthead does not name the theme');
+  // a Texas card reads in Texas words when drawn
+  await page.evaluate(() => { const s = __mono.ui.state; s.decks.chance = [0, ...s.decks.chance.filter(x => x !== 0)]; s.players[s.cur].pos = 5; s.debugDice = [[1, 1]]; render(); });
+  // switch in the menu to United States
+  await page.click('#menu-btn'); await page.click('#modal [data-ui=gametheme][data-v=usa]');
+  await page.waitForTimeout(300);
+  await page.click('#modal-x').catch(() => {});
+  bt = await boardText();
+  if (!/New York City/.test(bt) || /Austin/.test(bt)) problems.push('themes: switching to United States did not rename the board');
+  if (!/United States edition/.test(await page.locator('#center .masthead').innerText())) problems.push('themes: masthead did not change');
+  // undo goes back to Texas, and the theme survives a reload
+  await page.keyboard.press('u'); await page.waitForTimeout(300);
+  if (!/Austin/.test(await boardText())) problems.push('themes: Undo did not restore Texas');
+  await page.click('#menu-btn'); await page.click('#modal [data-ui=gametheme][data-v=usa]'); await page.waitForTimeout(300); await page.click('#modal-x').catch(() => {});
+  await page.reload(); await page.click('#resume-box [data-ui=resume]'); await page.waitForSelector('#game:not([hidden])');
+  if (!/New York City/.test(await boardText())) problems.push('themes: the theme was not restored after reload');
+  console.log('Themes test done');
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
