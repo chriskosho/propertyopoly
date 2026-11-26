@@ -1,7 +1,9 @@
 // Propertyopoly service worker: keeps the game playable offline.
 // Pages load from the network when it's available, so updates arrive right away,
-// and fall back to the saved copy when it isn't. Bump VERSION when files change.
-const VERSION = 'propertyopoly-v2';
+// and fall back to the saved copy when it isn't. The game itself checks version.json
+// for new releases (see checkForUpdate in index.html), so that file is never cached here.
+// Bump VERSION when the cached file list changes.
+const VERSION = 'propertyopoly-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -12,9 +14,13 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.endsWith('/version.json')) return;
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(res => {
+    // cache: 'no-store' skips the browser's own cache (GitHub Pages allows ten minutes of it),
+    // so a reload after an update always brings the new version.
+    e.respondWith(fetch(req, { cache: 'no-store' }).then(res => {
       const copy = res.clone(); caches.open(VERSION).then(c => c.put('index.html', copy));
       return res;
     }).catch(() => caches.match('index.html', { ignoreSearch: true })));
