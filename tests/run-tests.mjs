@@ -540,6 +540,17 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await shake();
   await page.waitForSelector('#throw:not(.armed)', { timeout: 3000 }).catch(() => problems.push('immersive: shaking did not throw held dice'));
   await idle().catch(() => {});
+  // 4b. Phones that report zero gravity-free acceleration still shake-roll from the with-gravity reading
+  await page.waitForTimeout(2600);
+  await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[2, 2], [5, 1]]; });
+  await page.evaluate(async () => { for (const z of [9.8, 28, 9.8, 9.8, 30, 9.8]) { window.dispatchEvent(new DeviceMotionEvent('devicemotion', { acceleration: { x: 0, y: 0, z: 0 }, accelerationIncludingGravity: { x: 0, y: 0, z } })); await new Promise(r => setTimeout(r, 60)); } });
+  await page.waitForSelector('#throw', { timeout: 3000 }).catch(() => problems.push('immersive: shake with zero linear readings did not roll'));
+  await idle().catch(() => {});
+  await page.evaluate(() => { const s = __mono.ui.state; s.pending = null; render(); syncModal(); });
+  await page.click('#menu-btn');
+  const ms = await page.locator('#motion-status').innerText().catch(() => '');
+  if (!/Motion readings are arriving/.test(ms)) problems.push('immersive: menu motion check missing or wrong: ' + ms);
+  await page.click('#modal-x');
   // 5. Keyboard: R picks up, Space throws
   await page.evaluate(() => { const s = __mono.ui.state; s.pending = null; render(); syncModal(); });
   await fresh1(); await page.evaluate(() => { __mono.ui.state.debugDice = [[6, 1]]; });

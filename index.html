@@ -1512,8 +1512,12 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '2.9.1';
 const RELEASES = [
+  {version:'2.9.1', date:'2026-11-26', title:'Shake fixes', changes:[
+    'Shaking works on more phones, including ones that report motion in a different way.',
+    'While you hold the dice, a lighter shake is enough to throw them.',
+    'With Immersive on, the Game menu shows a live motion check, and an Allow motion access button on iPhone and iPad.']},
   {version:'2.9.0', date:'2026-11-26', title:'3D dice you pick up and throw', changes:[
     'Immersive rolling now uses 3D dice that tumble across the screen.',
     'Tapping Roll dice picks the dice up. They follow your finger, then a flick throws them that way, a tap drops them, and a shake throws them too. Put them down cancels.',
@@ -1590,7 +1594,7 @@ const ui = {state:null, history:[], modalKey:null, userModal:null, animating:fal
   overDismissed:false, tradeDraft:null, tradeOpen:new Set(), tradeGate:null, muted:LS.get(KEY_MUTE)==='1', showLog:LS.get(KEY_LOG)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
   motion:LS.get(KEY_MOTION)==='off' ? 'off' : 'on',
   theme:LS.get(KEY_THEME)==='dark' ? 'dark' : 'light',
-  rollStyle:LS.get(KEY_ROLL)==='immersive' ? 'immersive' : 'classic', throwVel:null, motionOk:null,
+  rollStyle:LS.get(KEY_ROLL)==='immersive' ? 'immersive' : 'classic', throwVel:null, motionOk:null, motionInfo:{events:0, peak:0, last:0},
   hl:null, botTimer:null, spin:null, auctionKey:null, auctionEnds:0, installEvt:null};
 /* Animations are on by default; the Game menu can turn them off. An old saved 'auto' counts as on. */
 const reducedMotion = () => ui.motion==='off';
@@ -1860,6 +1864,8 @@ function armRoll(action){
     throwHeld(dist>30 && speed>400 ? {vx:dx/dist, vy:dy/dist, speed:speed*1.1} : null);
   });
   $('.throw-cancel', layer).addEventListener('click', e=>{ e.stopPropagation(); cancelHeld(); });
+  if(touch){ const n0 = ui.motionInfo.events; setTimeout(()=>{ if(ui.held!==H || H.thrown) return;
+    if(ui.motionInfo.events===n0){ const tip = $('.throw-tip', layer); if(tip) tip.textContent = ui.motionOk===false ? 'Motion access is off. Flick or tap to throw.' : 'No motion readings from this device. Flick or tap to throw.'; } }, 1500); }
 }
 function throwHeld(vel){
   const H = ui.held; if(!H || H.thrown) return;
@@ -1963,20 +1969,37 @@ function startMotionWatch(){
   if(ui.motionWatch || typeof DeviceMotionEvent==='undefined') return; ui.motionWatch = true;
   let peaks = [], coolUntil = 0;
   addEventListener('devicemotion', e=>{
+    // Force of the jolt in m/s². Some phones report the gravity-free reading as always zero,
+    // so take the stronger of that and the with-gravity reading minus gravity.
+    const a = e.acceleration, g = e.accelerationIncludingGravity;
+    const lin = a && a.x!=null ? Math.hypot(a.x, a.y||0, a.z||0) : 0;
+    const grav = g && g.x!=null ? Math.abs(Math.hypot(g.x, g.y||0, g.z||0) - 9.81) : 0;
+    const m = Math.max(lin, grav), MI = ui.motionInfo;
+    MI.events++; MI.last = m; MI.peak = Math.max(MI.peak*0.995, m);
     if(!immersiveOn()) return;
     const now = performance.now(); if(now<coolUntil) return;
-    // Force of the jolt in m/s², without gravity. Older devices only report it with gravity included.
-    const a = e.acceleration, g = e.accelerationIncludingGravity;
-    let m;
-    if(a && a.x!=null) m = Math.hypot(a.x, a.y, a.z||0);
-    else if(g && g.x!=null) m = Math.abs(Math.hypot(g.x, g.y, g.z||0) - 9.81);
-    else return;
-    if(m<11) return;
+    if(m < (ui.held && !ui.held.thrown ? 8 : 12)) return;
     if(peaks.length && now-peaks[peaks.length-1]<90) return;
     peaks.push(now); peaks = peaks.filter(x=>now-x<900);
     if(peaks.length>=2){ peaks = []; if(shakeRoll()) coolUntil = now+2500; }
   });
 }
+/* A plain-language report of what the motion sensor is doing, shown live in the Game menu. */
+function motionStatus(){
+  const MI = ui.motionInfo, needsAsk = typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function';
+  if(typeof DeviceMotionEvent==='undefined') return {text:'This browser doesn’t report motion, so shaking can’t work here. Flick or tap to throw.'};
+  if(ui.motionOk===false) return {text:'Motion access was declined. On iPhone or iPad, fully close the app or Safari, open it again, then tap Allow motion access.', ask:needsAsk};
+  if(needsAsk && ui.motionOk!==true) return {text:'Shaking needs motion access.', ask:true};
+  if(!ui.motionWatch) startMotionWatch();
+  if(!MI.events) return {text:'Motion access is on, but no readings have arrived yet. Shake the device now. If this doesn’t change, this device isn’t sending motion data.'};
+  return {text:`Motion readings are arriving (${MI.events}). Shake now: strongest jolt ${MI.peak.toFixed(1)} m/s². A roll needs two jolts over 12, or over 8 while you’re holding the dice.`};
+}
+function motionStatusHTML(){
+  const st = motionStatus();
+  return `<span id="motion-text">${esc(st.text)}</span>${st.ask?' <button class="btn small" data-ui="motionAllow">Allow motion access</button>':''}`;
+}
+setInterval(()=>{ const el = document.getElementById('motion-text'); if(!el || !$('#modal').open) return;
+  const st = motionStatus(); if(el.textContent!==st.text) el.textContent = st.text; }, 300);
 function askMotionPermission(){
   if(typeof DeviceMotionEvent==='undefined') return Promise.resolve('none');
   if(typeof DeviceMotionEvent.requestPermission==='function'){
@@ -2679,6 +2702,7 @@ function modalHTML(key){
       <h3>Dice rolling</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Dice rolling">${[['classic','Classic'],['immersive','Immersive']].map(([v,l])=>`<button class="btn small ${ui.rollStyle===v?'primary':''}" data-ui="rollstyle" data-v="${v}" aria-pressed="${ui.rollStyle===v}">${l}</button>`).join('')}</div>
       <p class="hint">Classic: tap Roll dice and they roll right away. Immersive: tap Roll dice to pick up the 3D dice, then shake your phone, flick, or tap to throw them across the screen. Shaking also rolls without tapping first.</p>
+      ${ui.rollStyle==='immersive' && matchMedia('(pointer:coarse)').matches ? `<p class="hint" id="motion-status" aria-live="polite">${motionStatusHTML()}</p>` : ''}
       <h3>Animations</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
       <p class="hint">Dice, hops and flying cash.</p>
@@ -2898,6 +2922,7 @@ document.addEventListener('keydown', e=>{
 function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
+    case 'motionAllow': askMotionPermission().then(()=>{ if(ui.userModal==='menu') syncModal(); }); break;
     case 'rollstyle': ui.rollStyle = el.dataset.v==='immersive' ? 'immersive' : 'classic'; LS.set(KEY_ROLL, ui.rollStyle); syncModal();
       if(ui.rollStyle==='immersive'){ const touch = matchMedia('(pointer:coarse)').matches; askMotionPermission().then(r=>{ toast(touch ? (r==='denied' ? 'Immersive rolls on. Motion access is off, so flick or tap to throw.' : 'Immersive rolls on. Tap Roll dice, then shake, flick or tap.') : 'Immersive rolls on. Click Roll dice, then flick or click.'); }); }
       else toast('Classic rolls on.'); break;
