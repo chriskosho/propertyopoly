@@ -908,7 +908,7 @@ function applyCard(s){
   }
   else if(fx.back){
     const from = p.pos; p.pos = (from - fx.back + 40) % 40;
-    s.fx.push({type:'move', player:pi, from, to:p.pos, jump:true});
+    s.fx.push({type:'move', player:pi, from, to:p.pos, steps:fx.back, dir:-1});
     land(s, pi);
   }
   else if(fx.jail) sendToJail(s, pi, 'drew a go to jail card');
@@ -1437,8 +1437,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.3.1';
 const RELEASES = [
+  {version:'2.3.1', date:'2026-11-25', title:'Card moves are visible', changes:[
+    'When a Chance or Community Chest card moves your token, the card now closes first so you see the token travel, and the landing card appears after it arrives.',
+    '“Go back 3 spaces” now hops backward instead of jumping.']},
   {version:'2.3.0', date:'2026-11-25', title:'Light theme and animations on', changes:[
     'The board is always white, even in dark mode.',
     'New Appearance setting in the Game menu: Light or Dark. Light is the default.',
@@ -1569,9 +1572,11 @@ async function dispatch(action, opts={}){
   }
   ui.state = next; autosave();
   // A decision that is now settled closes before the animations, so they aren't hidden behind it.
-  if(!requiredModal(next) && !ui.userModal && $('#modal').open){ $('#modal').close(); ui.modalKey = null; }
+  // A card that moves the token also closes first, even when a new decision follows, so the move is seen and the landing card appears after it.
+  const moves = next.fx.some(f=>f.type==='move');
+  if($('#modal').open && !ui.userModal && (!requiredModal(next) || (moves && action.type==='CARD_ACK'))){ $('#modal').close(); ui.modalKey = null; }
   ui.animating = true; updateToolbar();
-  try { await playFx(next.fx); } finally { ui.animating = false; }
+  try { await playFx(next.fx); if(moves && action.type==='CARD_ACK' && !reducedMotion()) await sleep(350); } finally { ui.animating = false; }
   render();
 }
 /* Turn the play clock and the auction timer. */
@@ -1686,7 +1691,7 @@ async function animateMove(f, fast){
     tok.style.transition = `transform ${delay}ms cubic-bezier(.4,.1,.4,1)`;
     const disc = $('.disc', tok);
     for(let k=1;k<=steps;k++){
-      ui.displayPos[f.player] = (f.from+k)%40; placeTokens();
+      ui.displayPos[f.player] = ((f.from+k*(f.dir||1))%40+40)%40; placeTokens();
       disc.animate([{transform:'translateY(0) scale(1)'},{transform:`translateY(-${steps>12?45:75}%) scale(1.14)`, offset:.45},{transform:'translateY(0) scale(1)'}],
         {duration:delay, easing:'ease-out'});
       sfx.play('step'); await sleep(delay);
