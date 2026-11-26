@@ -2382,7 +2382,7 @@ function uiCommand(cmd, el){
   switch(cmd){
     case 'handoffOk': ui.handoffSeen = s.turnNo; syncModal(); scheduleBot(); break;
     case 'wnOpen': showWhatsNew(RELEASES.slice(0,3), true); break;
-    case 'wnClose': $('#whatsnew').close(); break;
+    case 'wnClose': LS.set(KEY_SEEN, APP_VERSION); $('#whatsnew').close(); break;
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
     case 'hl': { const id = +el.dataset.p; ui.hl = ui.hl===id ? null : id; renderBoardMarks(s); renderPlayers(s); $(`.pl-hl[data-p="${id}"]`)?.focus(); } break;
     case 'install': if(ui.installEvt){ ui.installEvt.prompt(); ui.installEvt.userChoice.finally(()=>{ ui.installEvt = null; updateInstall(); if(ui.userModal==='menu') syncModal(); }); } break;

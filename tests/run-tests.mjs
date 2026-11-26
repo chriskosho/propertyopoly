@@ -169,6 +169,7 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   const { shown, expected } = await page.evaluate(() => ({ shown: document.querySelectorAll('#wn-body .rel').length, expected: RELEASES.length - 1 }));
   if (shown !== expected) problems.push(`What's new listed ${shown} releases, expected ${expected}`);
   await page.click('#whatsnew [data-ui=wnClose]');
+  await page.waitForFunction(() => localStorage.getItem('mono.seenVersion') === APP_VERSION, null, { timeout: 5000 }).catch(() => {});
   const seen = await page.evaluate(() => [localStorage.getItem('mono.seenVersion'), APP_VERSION]);
   if (seen[0] !== seen[1]) problems.push("What's new did not record the version as seen");
   await page.reload();
