@@ -45,6 +45,8 @@ jobs:
         run: |
           mkdir site
           cp -r index.html manifest.webmanifest sw.js icons site/
+          # Running copies compare this number with their own to know when to update.
+          node -e "const fs=require('fs');const v=fs.readFileSync('index.html','utf8').match(/APP_VERSION = '([^']+)'/)[1];fs.writeFileSync('site/version.json',JSON.stringify({version:v}));console.log('Publishing version',v)"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

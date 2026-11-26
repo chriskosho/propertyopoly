@@ -3,7 +3,8 @@
 //  2. plays several real turns through the interface, with animations on,
 //  3. checks TV mode and keyboard shortcuts,
 //  4. plays a person against computer players, with house rules on,
-//  5. checks the installable app: manifest, service worker and offline reload.
+//  5. checks the installable app: manifest, service worker and offline reload,
+//  6. checks updates: version list, automatic reload that keeps the game, and the What's new window.
 // Fails on any failed test, uncaught error or console error.
 import { chromium } from 'playwright-core';
 import { fileURLToPath } from 'node:url';
@@ -13,8 +14,11 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const appVersion = () => fs.readFileSync(path.join(root, 'index.html'), 'utf8').match(/APP_VERSION = '([^']+)'/)[1];
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  // The deploy step writes version.json; serve the same thing here.
+  if (p === '/version.json') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ version: appVersion() })); return; }
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(root, p);
   if (!file.startsWith(root) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
@@ -122,6 +126,56 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   const offline = await page.locator('#setup-title').isVisible();
   if (!offline) problems.push('the game did not load offline');
   console.log(`App test: manifest ok, service worker ${sw ? 'active' : 'missing'}, offline load ${offline ? 'ok' : 'failed'}`);
+  await ctx.close();
+}
+
+// 6. Updates: the release list is consistent, a new version reloads the page and resumes the game once,
+//    and the What's new window lists everything since the last version seen.
+{
+  const { ctx, page } = await fresh();
+  await page.goto(url);
+  const info = await page.evaluate(() => ({ v: APP_VERSION, top: RELEASES[0].version, all: RELEASES.map(r => r.version) }));
+  if (info.v !== info.top) problems.push(`APP_VERSION ${info.v} does not match the newest release entry ${info.top}`);
+  if (new Set(info.all).size !== info.all.length) problems.push('RELEASES has a repeated version number');
+  await ctx.close();
+}
+{
+  const { ctx, page } = await fresh({ serviceWorkers: 'block', viewport: { width: 1280, height: 820 } });
+  let loads = 0; page.on('load', () => loads++);
+  await page.route('**/version.json*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '99.0.0' }) }));
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.uncheck('#spinfirst');
+  await page.click('button[type=submit]');
+  await page.click('#modal[open] [data-ui=handoffOk]');
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(2500);
+  const before = await page.evaluate(() => __mono.state.log.length);
+  await page.waitForEvent('load', { timeout: 20000 });
+  await page.waitForSelector('#game:not([hidden])', { timeout: 5000 });
+  const after = await page.evaluate(() => ({ log: __mono.state.log.length, modal: document.querySelector('#modal').open && document.querySelector('#modal-body').innerText.slice(0, 40) }));
+  if (after.log < before) problems.push('update: the game in progress was not restored after reloading');
+  if (after.modal && /Show the board/.test(after.modal)) problems.push('update: the pass-the-device screen came back after the reload');
+  await page.waitForTimeout(6500);
+  if (loads !== 2) problems.push(`update: expected one reload, saw ${loads - 1}`);
+  console.log(`Update test: reloaded once and resumed the game (${loads - 1} reload)`);
+  await ctx.close();
+}
+{
+  const { ctx, page } = await fresh();
+  await page.addInitScript(() => { if (!localStorage.getItem('mono.seenVersion')) { localStorage.setItem('mono.seenVersion', '1.0.0'); localStorage.setItem('mono.setup', '{}'); } });
+  await page.goto(url);
+  await page.waitForSelector('#whatsnew[open]', { timeout: 5000 });
+  const { shown, expected } = await page.evaluate(() => ({ shown: document.querySelectorAll('#wn-body .rel').length, expected: RELEASES.length - 1 }));
+  if (shown !== expected) problems.push(`What's new listed ${shown} releases, expected ${expected}`);
+  await page.click('#whatsnew [data-ui=wnClose]');
+  await page.waitForFunction(() => localStorage.getItem('mono.seenVersion') === APP_VERSION, null, { timeout: 5000 }).catch(() => {});
+  const seen = await page.evaluate(() => [localStorage.getItem('mono.seenVersion'), APP_VERSION]);
+  if (seen[0] !== seen[1]) problems.push("What's new did not record the version as seen");
+  await page.reload();
+  await page.waitForTimeout(500);
+  if (await page.locator('#whatsnew[open]').count()) problems.push("What's new showed again for a version already seen");
+  console.log(`What's new test: ${shown} releases listed, shown once`);
   await ctx.close();
 }
 

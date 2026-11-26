@@ -31,6 +31,7 @@ Once it's installed it opens full screen and works with no internet connection. 
 - Animations: tossed dice, a doubles flourish, hopping tokens, cash flying between players, flipping cards, and a "Sold" stamp (all skipped when the device asks for reduced motion)
 - TV mode for a big screen, and keyboard shortcuts (Space to roll, Enter to end the turn, U to undo, ? for the full list)
 - Installable on phones, tablets and computers, and playable offline
+- Updates itself: when a new version is published, the app saves your game, reloads, picks up where you were, and shows a What's new window
 - Light and dark appearance, reduced-motion support, keyboard-accessible dialogs
 
 ## Tests
@@ -38,6 +39,10 @@ Once it's installed it opens full screen and works with no internet connection. 
 Open the browser console and run `runTests()`. It runs 58 rule checks, including full games played by computer players.
 
 The same checks run on every push through GitHub Actions (`tests/run-tests.mjs`), along with games played through the interface (people only, and a person against computer players) and a check that the installed app loads offline. The site deploys only when they pass.
+
+## Releasing
+
+Every change that should reach players needs a new `APP_VERSION` and a new entry at the top of `RELEASES`, both near the top of the script in `index.html`. The deploy step publishes the version number as `version.json`, and running copies check it every few minutes and whenever the app comes back to the screen. When it differs from their own, they reload and show the entries they haven't seen yet. A test fails if the two don't match.
 
 ## Disclaimer
 

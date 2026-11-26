@@ -440,6 +440,14 @@ dialog.wide{width:min(760px,calc(100vw - 20px))}
 .stand th:nth-child(2){text-align:left}
 .stand-wrap{overflow-x:auto}
 .install-hint{font-size:.88rem;color:var(--muted);margin:10px 0 0}
+/* what's new */
+#whatsnew .rel{border-top:1px solid var(--line-soft);padding-top:4px;margin-top:14px}
+#whatsnew .rel:first-of-type{border-top:0;margin-top:6px}
+#whatsnew .rel h3{margin:.6em 0 .1em}
+#whatsnew .rel .meta{font-size:.85rem;color:var(--muted);margin:0 0 4px}
+#whatsnew ul{margin:.3em 0;padding-left:1.2em}
+#whatsnew li{margin:.3em 0;line-height:1.45}
+#whatsnew .row-btns{position:sticky;bottom:-24px;background:var(--sheet);padding:12px 0 4px;margin-top:10px;border-top:1px solid var(--line-soft)}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
@@ -539,6 +547,7 @@ dialog.wide{width:min(760px,calc(100vw - 20px))}
 </main>
 
 <dialog id="modal" aria-labelledby="modal-title"><div class="mb" id="modal-body"></div></dialog>
+<dialog id="whatsnew" aria-labelledby="wn-title"><div class="mb" id="wn-body"></div></dialog>
 <input type="file" id="file-in" accept="application/json,.json" hidden>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -1396,6 +1405,34 @@ const LS = {
   set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} },
 };
+/* Versions. Every release that reaches the site gets a new number and a RELEASES entry
+   (newest first); the deploy step publishes the number as version.json, and running copies
+   check it to know when to update themselves. */
+const APP_VERSION = '2.1.0';
+const RELEASES = [
+  {version:'2.1.0', date:'2026-11-25', title:'Automatic updates', changes:[
+    'The app now checks for new versions and updates itself. Your game in progress is kept.',
+    'This window shows what changed after each update.',
+    'The Game menu shows the version you’re on and has a What’s new button.']},
+  {version:'2.0.0', date:'2026-11-25', title:'Computer players, house rules and an installable app', changes:[
+    'Any seat can now be a computer player.',
+    'House rules at setup: Free Parking jackpot, $400 for landing on Go, no rent while in jail, and an auction timer.',
+    'Shorter games: the quick game, a 20 or 40 round limit, or a 60 or 90 minute limit. The richest player wins.',
+    'A spinner picks who goes first.',
+    'Before you roll, red tags show what you’d owe on each space you could reach.',
+    'Dashed outlines show the missing pieces of each color set. Tap a player’s name to light up their property.',
+    'A button raises the cash for you when you owe more than you have.',
+    'The pass-the-device screen now hides the board.',
+    'The winner screen has a net worth chart, standings and awards.',
+    'You can install the game on your home screen, and it works offline.']},
+  {version:'1.1.0', title:'Animations, TV mode and shortcuts', changes:[
+    'Dice are tossed, doubles get a flourish, tokens hop, cash flies between players, cards flip, and a Sold stamp lands on new purchases.',
+    'TV mode fills a big screen with the board.',
+    'Keyboard shortcuts: Space to roll, Enter to end your turn, U to undo, and more in the Game menu.']},
+  {version:'1.0.0', title:'First release', changes:[
+    'A hot-seat property trading game for 2 to 8 players, with auctions, building, mortgages, trading, jail, bankruptcy, saving and undo.']},
+];
+const KEY_SEEN='mono.seenVersion', KEY_RELOAD='mono.reloadedFor', KEY_RESUME='mono.resumeAfterUpdate';
 const KEY_AUTO='mono.autosave', KEY_SLOT='mono.slot', KEY_MUTE='mono.muted', KEY_SETUP='mono.setup', KEY_TV='mono.tv';
 const ui = {state:null, history:[], modalKey:null, userModal:null, animating:false, displayPos:[], handoffSeen:0,
   overDismissed:false, tradeDraft:null, tradeGate:null, muted:LS.get(KEY_MUTE)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
@@ -1517,7 +1554,7 @@ function undo(){
 const BOT_DELAY = 650;
 function scheduleBot(){
   const s = ui.state;
-  if(!s || ui.botTimer || ui.animating || s.phase==='over' || $('#game').hidden || ui.spin || ui.userModal) return;
+  if(!s || ui.botTimer || ui.animating || s.phase==='over' || $('#game').hidden || ui.spin || ui.userModal || $('#whatsnew').open) return;
   if(!botAction(s, true)) return;
   ui.botTimer = setTimeout(()=>{
     ui.botTimer = null;
@@ -2177,6 +2214,7 @@ function modalHTML(key){
       <div class="row-btns"><button class="btn" data-ui="save" autofocus>Save game</button><button class="btn" data-ui="loadslot" ${hasSlot?'':'disabled'}>Load saved game</button></div>
       <div class="row-btns" style="margin-top:10px"><button class="btn" data-ui="export">Export to a file</button><button class="btn" data-ui="import">Open a saved game file</button></div>
       ${rulesSummary(s)}
+      <p class="hint">Version ${esc(APP_VERSION)}. New versions install on their own. <button class="btn small ghost" data-ui="wnOpen">What’s new</button></p>
       <div class="row-btns install-only-browser" style="margin-top:10px">${ui.installEvt?'<button class="btn" data-ui="install">Install the app</button>':''}</div>
       ${isIOS() ? '<p class="install-hint install-only-browser">To install on iPhone or iPad, tap Share in Safari, then Add to Home Screen.</p>' : ''}
       <h3>How to play</h3>
@@ -2343,6 +2381,8 @@ function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
     case 'handoffOk': ui.handoffSeen = s.turnNo; syncModal(); scheduleBot(); break;
+    case 'wnOpen': showWhatsNew(RELEASES.slice(0,3), true); break;
+    case 'wnClose': LS.set(KEY_SEEN, APP_VERSION); $('#whatsnew').close(); break;
     case 'spinOk': ui.spin = null; syncModal(); scheduleBot(); break;
     case 'hl': { const id = +el.dataset.p; ui.hl = ui.hl===id ? null : id; renderBoardMarks(s); renderPlayers(s); $(`.pl-hl[data-p="${id}"]`)?.focus(); } break;
     case 'install': if(ui.installEvt){ ui.installEvt.prompt(); ui.installEvt.userChoice.finally(()=>{ ui.installEvt = null; updateInstall(); if(ui.userModal==='menu') syncModal(); }); } break;
@@ -2392,7 +2432,7 @@ function setTV(on, fromClick){
 }
 /* Keyboard shortcuts. Inside dialogs, Enter and Space act on the focused button as usual. */
 document.addEventListener('keydown', e=>{
-  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey) return;
+  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey || $('#whatsnew').open) return;
   if(e.target.closest && e.target.closest('input,select,textarea')) return;
   const k = e.key.length===1 ? e.key.toLowerCase() : e.key;
   if((k==='z' && e.ctrlKey) || (k==='u' && !e.ctrlKey)){ e.preventDefault(); undo(); return; }
@@ -2414,7 +2454,7 @@ resizeObs.observe(document.documentElement); resizeObs.observe($('#board'));
 
 function startWithState(s, opts={}){
   s.fx = []; migrate(s); stopBots();
-  ui.state = s; ui.history = []; ui.handoffSeen = s.turnNo - 1; ui.overDismissed = false; ui.userModal = null; ui.modalKey = null; ui.lastRingPos = null; ui.tradeGate = null;
+  ui.state = s; ui.history = []; ui.handoffSeen = opts.noHandoff ? s.turnNo : s.turnNo - 1; ui.overDismissed = false; ui.userModal = null; ui.modalKey = null; ui.lastRingPos = null; ui.tradeGate = null;
   ui.hl = null; ui.spin = opts.spin ? {} : null;
   $('#setup').hidden = true; $('#game').hidden = false;
   buildBoard(); autosave(); render();
@@ -2815,8 +2855,66 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
   window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(err=>console.warn('Offline mode unavailable:', err)));
 }
 
+/* ---------- Updates ----------
+   The deploy step publishes version.json. When it names a version other than the one
+   running, the page saves the game, reloads, and picks the game back up where it was. */
+function applyUpdateWhenIdle(version){
+  if(applyUpdateWhenIdle.waiting) return; applyUpdateWhenIdle.waiting = true;
+  toast('A new version is available. Updating…');
+  const tick = ()=>{
+    // Wait out animations and open dialogs. Decisions in the game itself come back after the reload.
+    if(ui.animating || ui.userModal || ui.spin || $('#whatsnew').open){ setTimeout(tick, 1000); return; }
+    stopBots(); autosave();
+    LS.set(KEY_RELOAD, version);
+    if(ui.state && ui.state.phase!=='over' && !$('#game').hidden) LS.set(KEY_RESUME, '1');
+    location.reload();
+  };
+  setTimeout(tick, 1800);
+}
+async function checkForUpdate(){
+  if(!/^https?:$/.test(location.protocol) || navigator.onLine===false) return;
+  try{
+    const r = await fetch('version.json?t=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const v = (await r.json()).version;
+    if(typeof v!=='string' || v===APP_VERSION) return;
+    if(LS.get(KEY_RELOAD)===v) return;       // already reloaded once for this version: never loop
+    applyUpdateWhenIdle(v);
+  }catch(e){}
+}
+setTimeout(checkForUpdate, 3000);
+setInterval(checkForUpdate, 5*60*1000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkForUpdate(); });
+window.addEventListener('online', checkForUpdate);
+
+/* ---------- What's new ---------- */
+function showWhatsNew(list, manual){
+  const when = d => new Date(d+'T12:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  $('#wn-body').innerHTML = `<h2 id="wn-title">What’s new</h2>
+    <p>${manual ? `You’re on version ${esc(APP_VERSION)}.` : `Propertyopoly is now on version ${esc(APP_VERSION)}.${ui.state ? ' Your game is right where you left it.' : ''}`}</p>
+    ${list.map(r=>`<section class="rel"><h3>${esc(r.title)}</h3><p class="meta">Version ${esc(r.version)}${r.date ? ', '+when(r.date) : ''}</p><ul>${r.changes.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></section>`).join('')}
+    <div class="row-btns"><button class="btn primary" data-ui="wnClose" autofocus>Got it</button></div>`;
+  const dlg = $('#whatsnew'); if(!dlg.open) dlg.showModal();
+  $('[autofocus]', dlg)?.focus({preventScroll:true});
+  $('#wn-body').scrollTop = 0;
+}
+$('#whatsnew').addEventListener('close', ()=>{ LS.set(KEY_SEEN, APP_VERSION); scheduleBot(); });
+function maybeShowWhatsNew(){
+  let seen = LS.get(KEY_SEEN);
+  // Copies from before this feature never stored a version: treat anyone who has played as coming from 2.0.0.
+  if(!seen) seen = (LS.get(KEY_SETUP) || LS.get(KEY_AUTO) || LS.get(KEY_SLOT)) ? '2.0.0' : APP_VERSION;
+  if(seen===APP_VERSION){ LS.set(KEY_SEEN, APP_VERSION); return; }
+  const i = RELEASES.findIndex(r=>r.version===seen);
+  showWhatsNew(i<0 ? RELEASES.slice(0,1) : RELEASES.slice(0,i), false);
+}
+
 document.body.classList.toggle('tv', ui.tv);
 showSetup();
+if(LS.get(KEY_RESUME)==='1'){
+  LS.del(KEY_RESUME);
+  try{ const o = JSON.parse(LS.get(KEY_AUTO)); if(validState(o) && o.phase!=='over') startWithState(o, {noHandoff:true}); }catch(e){}
+}
+maybeShowWhatsNew();
 </script>
 </body>
 </html>
