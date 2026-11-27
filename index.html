@@ -299,6 +299,13 @@ dialog p{line-height:1.5;margin:.4em 0;max-width:62ch}
 .tshadow{position:absolute;left:10%;top:10%;width:80%;height:80%;border-radius:20%;background:#000;filter:blur(9px)}
 .throw-tip{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);top:calc(64px + env(safe-area-inset-top));margin:0;padding:8px 14px;border-radius:999px;background:#13243D;text-align:center;color:#fff;font-weight:600;font-size:1rem;pointer-events:none}
 .throw-cancel,#throw .throw-cancel{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;background:#fff;color:#13243D;border-color:#fff}
+.first-pick{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.first-pick label{font-family:var(--cond);font-stretch:condensed;font-weight:700;font-size:1.05rem}
+.ro{max-height:min(52vh,420px);overflow:auto;margin:6px 0}.ro-round h3{margin:10px 0 4px;font-size:1rem;color:var(--muted)}
+.ro-round ul{list-style:none;margin:0;padding:0}.ro-round li{display:grid;grid-template-columns:36px minmax(0,1fr) auto 2.2em;align-items:center;gap:8px;padding:5px 6px;border-bottom:1px solid var(--line-soft)}
+.ro-round li .disc{width:30px;height:30px}.ro-round .rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.ro-round .rd{display:flex;gap:4px;min-width:76px}.ro-round .rt{text-align:right;font-size:1.15rem}
+.ro-round li.win{background:rgba(15,122,92,.14)}.ro-round li.tie{background:rgba(213,47,38,.12)}.ro-round li.out{opacity:.55}
+.ro-die{width:34px;height:34px;box-sizing:border-box;border:1.5px solid #13243D;border-radius:7px;background:#fff;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:5px}.ro-die i{width:85%;height:85%;border-radius:50%;background:#13243D;place-self:center}
+.ro-msg{min-height:1.6em}
 .theme-picks{clear:both;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .theme-card{position:relative;display:block;cursor:pointer}.theme-card input{position:absolute;opacity:0;inset:0}
 .theme-card span{display:block;border:1.5px solid var(--line);background:var(--sheet);padding:9px 11px;border-radius:4px}
@@ -609,7 +616,7 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
         </div>
       </fieldset>
       <div class="setup-foot">
-        <label class="check"><input type="checkbox" id="spinfirst" checked> Spin to pick who goes first</label>
+        <div class="first-pick"><label for="first-mode">Who goes first</label><select id="first-mode" class="sel"><option value="spin">Spin to pick</option><option value="roll">Roll-off: highest roll goes first</option><option value="none">Pick at random, no animation</option></select></div>
         <button class="btn primary" type="submit">Start game</button>
       </div>
       <div class="link-row">
@@ -853,8 +860,17 @@ function newGame(cfg){
   for(const i of OWNABLE) s.props[i] = {owner:null, houses:0, mortgaged:false};
   s.decks.chance = shuffle(s, [...Array(16).keys()]);
   s.decks.chest = shuffle(s, [...Array(16).keys()]);
-  if(cfg.pickFirst) s.cur = s.first = Math.floor(rand(s)*s.players.length);
-  log(s, `New game with ${s.players.length} players. ${s.players[s.cur].name} goes first.`, 'turnstart');
+  if(cfg.pickFirst && cfg.firstBy==='roll'){
+    // Roll-off: everyone rolls two dice, the highest total goes first, and anyone tied rolls again.
+    s.rollOff = []; let ids = s.players.map(p=>p.id);
+    for(let round=0; round<25 && ids.length>1; round++){
+      const dice = ids.map(()=>[1+Math.floor(rand(s)*6), 1+Math.floor(rand(s)*6)]), tot = dice.map(d=>d[0]+d[1]), top = Math.max(...tot);
+      s.rollOff.push({ids:[...ids], dice});
+      ids = ids.filter((_,k)=>tot[k]===top);
+    }
+    s.cur = s.first = ids[0];
+  } else if(cfg.pickFirst) s.cur = s.first = Math.floor(rand(s)*s.players.length);
+  log(s, s.rollOff ? `${s.players[s.cur].name} won the roll-off and goes first.` : `New game with ${s.players.length} players. ${s.players[s.cur].name} goes first.`, 'turnstart');
   if(s.rules.quick){
     // Official short game: the banker deals two title deeds to each player, who pay the bank for them.
     const deeds = shuffle(s, [...OWNABLE]);
@@ -1596,8 +1612,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.13.0';
+const APP_VERSION = '2.14.0';
 const RELEASES = [
+  {version:'2.14.0', date:'2026-11-27', title:'Roll-off to go first', changes:[
+    'New Who goes first choice on the new game screen: Spin to pick (as before), Roll-off, or pick at random with no animation.',
+    'In a roll-off every player rolls two dice and the highest total goes first. Anyone tied rolls again until one player is ahead.']},
   {version:'2.13.0', date:'2026-11-26', title:'Texas and United States themes', changes:[
     'Pick a theme on the new game screen, or switch any time in the Game menu: Classic, Texas or United States.',
     'A theme renames the properties, railroads, utilities, taxes and card decks, and rewrites the Chance and Community Chest cards. Prices, rents and rules stay exactly the same.']},
@@ -2606,6 +2625,14 @@ function playerLine(s, pi){ const p=s.players[pi]; return `${esc(p.name)} has ${
 
 function modalHTML(key){
   const s = ui.state;
+  if(key==='spin' && ui.spin?.roll && s.rollOff){
+    const order = []; for(let k=0;k<s.players.length;k++) order.push(s.players[(s.first+k)%s.players.length].name);
+    return `<h2 id="modal-title">Roll-off: highest roll goes first</h2>
+      <div class="ro" id="ro"></div>
+      <div class="spin-name ro-msg" aria-live="polite">${ui.spin?.done ? esc(s.players[s.first].name)+' goes first' : ''}</div>
+      <p class="order" ${ui.spin?.done?'':'hidden'}>Play goes in this order: ${order.map(esc).join(', ')}.</p>
+      <div class="row-btns" style="justify-content:center"><button class="btn primary" data-ui="spinOk" ${ui.spin?.done?'autofocus':'disabled'}>Start the game</button></div>`;
+  }
   if(key==='spin'){
     const order = []; for(let k=0;k<s.players.length;k++) order.push(s.players[(s.first+k)%s.players.length].name);
     return `<h2 id="modal-title">Who goes first?</h2>
@@ -2873,7 +2900,33 @@ function awardsHTML(s){
   return out.length ? `<div class="awards">${out.map(([h,t])=>`<div class="award"><h4>${h}</h4><p>${t}</p></div>`).join('')}</div>` : '';
 }
 /* The first-player spinner: the highlight slows down and stops on whoever goes first. */
+async function runRollOff(){
+  const sp = ui.spin; if(!sp || sp.running || sp.done) return; sp.running = true;
+  const s = ui.state, box = $('#ro'), msg = $('#modal .ro-msg'), quick = reducedMotion(), wait = ms => quick ? Promise.resolve() : sleep(ms);
+  const dieEl = v => `<span class="ro-die" aria-label="${v}">${pips(v)}</span>`;
+  const pause = async ms => { await wait(ms); return ui.spin===sp; };
+  for(let r=0; r<s.rollOff.length; r++){
+    const R = s.rollOff[r], tot = R.dice.map(d=>d[0]+d[1]), top = Math.max(...tot);
+    const sec = document.createElement('section'); sec.className = 'ro-round';
+    sec.innerHTML = `<h3>${r===0 ? 'Everyone rolls' : 'Tie. Roll again'}</h3><ul>${R.ids.map(id=>`<li data-id="${id}">${tokenDisc(s.players[id])}<span class="rn">${esc(s.players[id].name)}</span><span class="rd"></span><b class="rt"></b></li>`).join('')}</ul>`;
+    box.appendChild(sec); sec.scrollIntoView?.({block:'nearest'});
+    for(let k=0;k<R.ids.length;k++){
+      const li = $(`li[data-id="${R.ids[k]}"]`, sec), rd = $('.rd', li);
+      msg.textContent = `${s.players[R.ids[k]].name} rolls…`;
+      if(!quick){ sfx.play('dice'); for(let f=0; f<7; f++){ rd.innerHTML = dieEl(1+Math.floor(Math.random()*6)) + dieEl(1+Math.floor(Math.random()*6)); await sleep(70+f*18); if(ui.spin!==sp) return; } }
+      rd.innerHTML = dieEl(R.dice[k][0]) + dieEl(R.dice[k][1]); $('.rt', li).textContent = tot[k]; sfx.play('step');
+      if(!await pause(450)) return;
+    }
+    const tied = R.ids.filter((_,k)=>tot[k]===top);
+    R.ids.forEach((id,k)=>$(`li[data-id="${id}"]`, sec).classList.add(tot[k]===top ? (tied.length>1 && r<s.rollOff.length-1 ? 'tie' : 'win') : 'out'));
+    if(r<s.rollOff.length-1){ msg.textContent = `Tie at ${top}: ${tied.map(id=>s.players[id].name).join(' and ')} roll again.`; sfx.play('thud'); if(!await pause(1100)) return; }
+  }
+  msg.textContent = `${s.players[s.first].name} goes first`; sfx.play('buy'); sp.done = true;
+  $('#modal .order').hidden = false;
+  const b = $('#modal [data-ui="spinOk"]'); b.disabled = false; b.focus();
+}
 async function runSpin(){
+  if(ui.spin && ui.spin.roll) return runRollOff();
   const sp = ui.spin; if(!sp || sp.running || sp.done) return; sp.running = true;
   const s = ui.state, discs = $$('#modal .spin .disc'), name = $('#modal .spin-name');
   const target = discs.findIndex(d=>+d.dataset.sp===s.first);
@@ -3108,7 +3161,7 @@ resizeObs.observe(document.documentElement); resizeObs.observe($('#board'));
 function startWithState(s, opts={}){
   s.fx = []; migrate(s); stopBots();
   ui.state = s; ui.history = []; ui.handoffSeen = opts.noHandoff ? s.turnNo : s.turnNo - 1; ui.overDismissed = false; ui.userModal = null; ui.modalKey = null; ui.lastRingPos = null; ui.tradeGate = null;
-  ui.hl = null; ui.spin = opts.spin ? {} : null;
+  ui.hl = null; ui.spin = opts.spin ? (s.rollOff ? {roll:true} : {}) : null;
   $('#setup').hidden = true; $('#game').hidden = false;
   useTheme(s.theme); buildBoard(); autosave(); render();
 }
@@ -3124,7 +3177,7 @@ const setup = (()=>{
   const r = saved && saved.rules || {};
   return {count: saved && saved.count>=2 && saved.count<=8 ? saved.count : 4, players,
     rules:{parking:!!r.parking, doubleGo:!!r.doubleGo, noJailRent:!!r.noJailRent, auctionTimer:+r.auctionTimer||0, end:r.end||'official'},
-    spin: saved && saved.spin===false ? false : true, theme: themeOf(saved && saved.theme)};
+    firstMode: ['spin','roll','none'].includes(saved && saved.firstMode) ? saved.firstMode : (saved && saved.spin===false ? 'none' : 'spin'), theme: themeOf(saved && saved.theme)};
 })();
 function renderSetup(){
   $('#count').innerHTML = [2,3,4,5,6,7,8].map(n=>`<label><input type="radio" name="count" value="${n}" ${n===setup.count?'checked':''} aria-label="${n} players"><span>${n}</span></label>`).join('');
@@ -3143,12 +3196,12 @@ function saveSetup(){ LS.set(KEY_SETUP, JSON.stringify(setup)); }
 function renderRules(){
   const r = setup.rules;
   $('#r-parking').checked = r.parking; $('#r-doublego').checked = r.doubleGo; $('#r-jailrent').checked = r.noJailRent;
-  $('#r-timer').value = String(r.auctionTimer); $('#r-end').value = r.end; $('#spinfirst').checked = setup.spin;
+  $('#r-timer').value = String(r.auctionTimer); $('#r-end').value = r.end; $('#first-mode').value = setup.firstMode;
 }
 function readRules(){
   setup.rules = {parking:$('#r-parking').checked, doubleGo:$('#r-doublego').checked, noJailRent:$('#r-jailrent').checked,
     auctionTimer:+$('#r-timer').value, end:$('#r-end').value};
-  setup.spin = $('#spinfirst').checked;
+  setup.firstMode = $('#first-mode').value;
 }
 function engineRules(r){
   const [kind, n] = r.end.split(':');
@@ -3164,7 +3217,7 @@ $('#setup-form').addEventListener('change', e=>{
   if(t.name==='count'){ setup.count = +t.value; renderSetup(); saveSetup(); return; }
   if(t.dataset.kind!=null){ setup.players[+t.dataset.kind].bot = t.value==='bot'; saveSetup(); return; }
   if(t.name==='theme'){ setup.theme = themeOf(t.value); saveSetup(); return; }
-  if(t.closest('#rules') || t.id==='spinfirst'){ readRules(); saveSetup(); return; }
+  if(t.closest('#rules') || t.id==='first-mode'){ readRules(); saveSetup(); return; }
   const swap = (field, i, val) => {   // tokens and colors stay unique: trade with whoever had it
     const other = setup.players.findIndex((p,j)=>j!==i && j<setup.count && p[field]===val);
     if(other>=0) setup.players[other][field] = setup.players[i][field];
@@ -3187,7 +3240,7 @@ $('#setup-form').addEventListener('submit', e=>{
   const startIt = () => {
   readRules(); saveSetup();
   const seed = (Date.now() ^ Math.floor(Math.random()*0xFFFFFFFF)) >>> 0;
-  startWithState(newGame({seed, players:ps, pickFirst:true, rules:engineRules(setup.rules), theme:setup.theme}), {spin:setup.spin});
+  startWithState(newGame({seed, players:ps, pickFirst:true, firstBy:setup.firstMode==='roll'?'roll':null, rules:engineRules(setup.rules), theme:setup.theme}), {spin:setup.firstMode!=='none'});
   };
   let auto = null; try{ auto = JSON.parse(LS.get(KEY_AUTO)); }catch(err){}
   if(validState(auto) && auto.phase!=='over'){
@@ -3282,6 +3335,24 @@ function runTests(){
     useTheme('classic');
     let s = base(); eq(s.theme, 'classic'); s = R(s,{type:'SET_THEME', theme:'usa'}); eq(s.theme, 'usa'); throws(()=>R(s,{type:'SET_THEME', theme:'usa'})); throws(()=>R(s,{type:'SET_THEME', theme:'nope'}));
     } finally { useTheme('classic'); }
+  });
+  t('Roll-off: highest total goes first and only tied players roll again', ()=>{
+    let sawTie = false;
+    for(let seed=1; seed<=300; seed++){
+      const s = newGame({seed, pickFirst:true, firstBy:'roll', players:Array.from({length:4},(_,i)=>({name:'P'+(i+1), token:Object.keys(TOKENS)[i], color:COLORS[i].hex}))});
+      eq(s.rollOff[0].ids, [0,1,2,3]);
+      let ids = [0,1,2,3];
+      s.rollOff.forEach((r,k)=>{
+        eq(r.ids, ids); eq(r.dice.length, ids.length);
+        r.dice.forEach(d=>d.forEach(v=>{ if(!(v>=1&&v<=6)) throw new Error('bad die '+v); }));
+        const tot = r.dice.map(d=>d[0]+d[1]), top = Math.max(...tot);
+        ids = ids.filter((_,j)=>tot[j]===top);
+        if(k<s.rollOff.length-1){ if(ids.length<2) throw new Error('rolled again without a tie'); sawTie = true; }
+      });
+      eq(ids.length, 1, 'roll-off ended without a single winner'); eq(s.first, ids[0]); eq(s.cur, ids[0]);
+    }
+    eq(sawTie, true, 'no tie seen in 300 games');
+    const plain = newGame({seed:5, pickFirst:true, players:[0,1].map(i=>({name:'P'+i, token:Object.keys(TOKENS)[i], color:COLORS[i].hex}))}); eq(plain.rollOff, undefined);
   });
   t('Passing Go pays $200', ()=>{ let s = base(); s.players[0].pos = 38; s.debugDice = [[2,3]]; s = R(s,{type:'ROLL'}); eq(s.players[0].pos, 3); eq(s.pending.type,'buy'); eq(s.players[0].cash, 1700); });
   t('Buying a property', ()=>{ let s = base(); s.debugDice = [[1,2]]; s = R(s,{type:'ROLL'}); s = R(s,{type:'BUY'}); eq(s.props[3].owner, 0); eq(s.players[0].cash, 1440); });
