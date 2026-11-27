@@ -699,6 +699,38 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
   await ctx.close();
 }
 
+// 19. Reaching the round limit asks what to do; Luxury Tax is $100.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="3"]', { force: true });
+  await page.selectOption('#first-mode', 'none');
+  await page.selectOption('#r-end', 'rounds:20');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  if (!/Luxury Tax/.test(await page.locator('#board').innerText()) || !/Pay \$100/.test(await page.locator('#board .space[data-i="38"]').innerText())) problems.push('luxury tax: the board should show Pay $100');
+  const reach = () => page.evaluate(() => { const s = __mono.ui.state; s.round = s.rules.roundLimit; s.first = 0; s.cur = s.players.length - 1; s.phase = 'end'; s.pending = null; s.players[1].cash = 4000; render(); __mono.dispatch({ type: 'END_TURN' }); });
+  await reach();
+  await page.waitForSelector('#modal[open] #modal-title');
+  if ((await page.locator('#modal-title').innerText()) !== 'Round limit reached') problems.push('round limit: no prompt at the limit');
+  if ((await page.locator('#modal .stand li').count()) !== 3) problems.push('round limit: standings should list 3 players');
+  if (!/Player 2/.test(await page.locator('#modal .stand li').first().innerText())) problems.push('round limit: the richest player should be listed first');
+  const btns = await page.locator('#modal .choices .btn').allInnerTexts();
+  if (btns.length !== 5 || !/3 more/.test(btns[0]) || !/5 more/.test(btns[1]) || !/10 more/.test(btns[2]) || !/until one player is left/.test(btns[3]) || !/End the game now: Player 2 wins/.test(btns[4])) problems.push('round limit: wrong choices: ' + btns.join(' | '));
+  if (await page.locator('#modal-x').isVisible()) problems.push('round limit: the prompt should not be dismissable');
+  await page.click('#modal .choices .btn >> nth=1');
+  await page.waitForSelector('#modal', { state: 'hidden' });
+  const lim = await page.evaluate(() => __mono.ui.state.rules.roundLimit);
+  if (lim !== 25) problems.push('round limit: expected 25 after adding 5, saw ' + lim);
+  if (!/of 25/.test(await page.locator('#center').textContent())) problems.push('round limit: the round counter does not show 25');
+  await reach(); await page.waitForSelector('#modal[open] .choices');
+  await page.click('#modal .choices .btn >> nth=3'); await page.waitForSelector('#modal', { state: 'hidden' });
+  if ((await page.evaluate(() => __mono.ui.state.rules.roundLimit)) !== 0) problems.push('round limit: playing on should remove the limit');
+  if (/of \d+/.test(await page.locator('#center .titleblock tr').first().textContent())) problems.push('round limit: the counter should go back to turns');
+  console.log('Round limit prompt test done');
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
