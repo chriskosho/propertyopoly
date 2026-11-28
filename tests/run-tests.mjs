@@ -731,6 +731,30 @@ const fresh = async (opts = {}) => { const { keepDefaults, ...o } = opts; const 
   await ctx.close();
 }
 
+// 20. Undo reaches back three steps, across a hand-off.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="3"]', { force: true });
+  await page.selectOption('#first-mode', 'none');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const info = () => page.evaluate(() => ({ cur: __mono.ui.state.cur, turn: __mono.ui.state.turnNo, hist: __mono.ui.history.length }));
+  const pass = () => page.evaluate(async () => { const s = __mono.ui.state; s.phase = 'end'; s.pending = null; s.doubles = 0; await __mono.dispatch({ type: 'END_TURN' }); });
+  const start = await info();
+  for (let i = 0; i < 5; i++) await pass();
+  const mid = await info();
+  if (mid.hist !== 3) problems.push('undo: history should hold 3 steps, saw ' + mid.hist);
+  if (mid.turn !== start.turn + 5) problems.push('undo: turns did not advance as expected');
+  for (let i = 0; i < 3; i++) await page.evaluate(() => undo());
+  const back = await info();
+  if (back.turn !== mid.turn - 3 || back.hist !== 0) problems.push('undo: three undos should step back three turns, saw ' + JSON.stringify(back));
+  await page.evaluate(() => undo());
+  if ((await info()).turn !== back.turn) problems.push('undo: a fourth undo should do nothing');
+  console.log('Undo test done');
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }

@@ -1626,8 +1626,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.15.2';
+const APP_VERSION = '2.16.0';
 const RELEASES = [
+  {version:'2.16.0', date:'2026-11-27', title:'Undo reaches back three steps', changes:[
+    'Undo now takes back up to the last three actions, even across a turn change, so an accidental tap while passing the phone can be fixed.',
+  ]},
   {version:'2.15.2', date:'2026-11-27', title:'Cleaner top bar', changes:[
     'The top bar now shows the game name, and Full screen is a plain icon with no text.',
   ]},
@@ -1821,6 +1824,7 @@ function announceTurn(s){
   if(m.length) parts.push(`You have ${m.length} mortgaged ${m.length===1?'property':'properties'}. Unmortgage ${m.length===1?'it':'them'} under Mortgage.`);
   if(parts.length) toast(parts.join(' '), m.length ? 6000 : 3000);
 }
+const UNDO_STEPS = 3;
 async function dispatch(action, opts={}){
   if(ui.animating || !ui.state) return;
   let next;
@@ -1831,11 +1835,10 @@ async function dispatch(action, opts={}){
     ui.history = [];
     botNotice(ui.state, next, action);
   } else {
-    // Undo history: entries from earlier turns are dropped as soon as the new
-    // player does anything, so nobody can undo into someone else's finished turn.
-    if(action.type!=='END_TURN') ui.history = ui.history.filter(h=>h.turnNo>=ui.state.turnNo);
+    // Undo keeps the last three actions, even across a hand-off, so an accidental tap
+    // while passing the phone can be taken back.
     ui.history.push({turnNo:ui.state.turnNo, state:ui.state});
-    if(ui.history.length>40) ui.history.shift();
+    if(ui.history.length>UNDO_STEPS) ui.history.shift();
   }
   ui.state = next; autosave();
   // A decision that is now settled closes before the animations, so they aren't hidden behind it.
@@ -2499,7 +2502,7 @@ function updateToolbar(){
   const can = ui.history.length>0 && !ui.animating;
   u.disabled = !can;
   const s = ui.state;
-  $('#undo-note').textContent = !ui.history.length ? 'Undo works for actions in the current turn.' :
+  $('#undo-note').textContent = !ui.history.length ? 'Undo can take back your last three actions.' :
     `Undo is available for ${ui.history.length} action${ui.history.length>1?'s':''}. Dice results stay the same if you redo a roll.`;
   const sb = $('#sound-btn'); sb.setAttribute('aria-label', ui.muted ? 'Sound is off. Turn sound on' : 'Sound is on. Turn sound off'); sb.title = ui.muted ? 'Sound is off' : 'Sound is on'; sb.setAttribute('aria-pressed', String(!ui.muted));
   $('#snd-icon').setAttribute('d', ui.muted ? 'M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z' : 'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z');
