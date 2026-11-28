@@ -500,6 +500,52 @@ body.tv dialog .btn.small{font-size:1.02rem}
 .space.t-parking .in.has-bag .gl{visibility:hidden}
 .bag{position:absolute;left:50%;bottom:24%;width:35%;--bs:.45;transform:translate(-50%,0) scale(var(--bs));transform-origin:50% 100%;transition:transform .45s cubic-bezier(.3,1.5,.5,1);pointer-events:none;z-index:2}
 .bag svg{display:block;width:100%;height:auto;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+/* Money Grab */
+.grab{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#071B33;color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none}
+.grab::backdrop{background:rgba(4,14,28,.7)}
+.grab canvas{position:absolute;inset:0;display:block;touch-action:none;cursor:crosshair}
+.grab-time{position:absolute;left:0;top:0;width:100%;height:5px;background:linear-gradient(90deg,#F5C84B,#FFE9A3);transform-origin:left center;box-shadow:0 0 12px rgba(255,214,90,.6)}
+.grab-hud{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:max(14px,env(safe-area-inset-top)) 16px 10px;pointer-events:none;font-family:var(--cond);font-stretch:condensed;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.grab-hud .disc{width:36px;height:36px;font-size:1rem;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.gh-name{font-size:1.3rem;font-weight:700;margin-right:auto}
+.gh-count{display:flex;align-items:baseline;gap:6px;font-variant-numeric:tabular-nums}
+.gh-count b{font-size:2rem;font-weight:800;color:#FFE38A;line-height:1}
+.gh-count small{font-size:1rem;opacity:.75}
+.gh-count .mini{align-self:center;width:30px;height:15px;background:#EAD69B;border:1.5px solid #3D4A3D;border-radius:2px;box-shadow:inset 0 0 0 2px #EAD69B,inset 0 0 0 3px rgba(40,60,40,.4)}
+.gh-count.bump b{animation:ghBump .32s cubic-bezier(.3,1.6,.5,1)}
+@keyframes ghBump{40%{transform:scale(1.45)}}
+.grab-hint{position:absolute;left:0;right:0;bottom:max(20px,env(safe-area-inset-bottom));text-align:center;font-family:var(--cond);font-stretch:condensed;font-size:1.15rem;letter-spacing:.01em;pointer-events:none;transition:opacity .7s;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.grab-over{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;padding:16px}
+.g-card{pointer-events:auto;background:var(--sheet);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:22px 22px 18px;width:min(92vw,420px);text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:gIn .5s cubic-bezier(.2,1.35,.4,1)}
+@keyframes gIn{from{transform:scale(.75) translateY(24px);opacity:0}}
+.g-card .btn{margin-top:14px;width:100%}
+.g-who{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;font-weight:700}
+.g-who .disc{width:28px;height:28px}
+.g-big{font-family:var(--cond);font-stretch:condensed;font-size:5rem;font-weight:800;line-height:1;margin-top:8px;color:var(--ink)}
+.g-res h2{margin:0 0 4px}
+.g-res ol{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px;text-align:left}
+.g-res li{display:grid;grid-template-columns:auto minmax(5em,1.3fr) minmax(3em,1fr) auto auto;align-items:center;gap:8px;opacity:0;animation:gRow .45s var(--d) cubic-bezier(.2,1.2,.4,1) forwards}
+.g-res li .disc{width:26px;height:26px}
+.g-res .rn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g-res .gbar{height:10px;border-radius:5px;background:var(--line-soft);overflow:hidden}
+.g-res .gbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#C9A64A,#F5C84B);transform-origin:left;transform:scaleX(var(--w));animation:gBar .8s calc(var(--d) + .15s) cubic-bezier(.2,.9,.3,1) backwards}
+.g-res .gc{font-variant-numeric:tabular-nums;color:var(--muted);min-width:1.4em;text-align:right}
+.g-res b{font-variant-numeric:tabular-nums;min-width:3.6em;text-align:right}
+@keyframes gRow{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes gBar{from{transform:scaleX(0)}}
+.g-banner{display:grid;gap:14px;line-height:1.1;text-align:center;font-family:var(--cond);font-stretch:condensed;text-shadow:0 3px 14px rgba(0,0,0,.7);animation:gIn .5s cubic-bezier(.2,1.35,.4,1)}
+.g-banner strong{font-size:clamp(2.4rem,11vw,4.5rem);color:#FFE38A;line-height:1}
+.g-banner span{font-size:clamp(1.2rem,5vw,1.8rem);font-weight:700}
+.grab-intro{text-align:center}
+.grab-intro .g-who{font-size:1.2rem;margin:10px 0 4px}
+.grab-intro .g-who .disc{width:40px;height:40px}
+.grab-intro .sofar{list-style:none;padding:0;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;color:var(--muted);font-size:.9rem}
+.grab-intro .btn.primary{font-size:1.1rem;padding:.7em 1.4em}
+.grab-intro .mg-ill{display:flex;justify-content:center;gap:6px;margin:6px 0 2px}
+.grab-intro .mg-ill i{width:44px;height:22px;background:#EAD69B;border:1.5px solid #3D4A3D;border-radius:2px;box-shadow:inset 0 0 0 2px #EAD69B,inset 0 0 0 3px rgba(40,60,40,.4);animation:mgFlut 1.6s ease-in-out infinite}
+.grab-intro .mg-ill i:nth-child(2){animation-delay:-.5s;transform:translateY(-6px)}.grab-intro .mg-ill i:nth-child(3){animation-delay:-1s}
+@keyframes mgFlut{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-8px) rotate(8deg)}}
+.motion-off .grab-intro .mg-ill i{animation:none}
 .bill{position:absolute;left:0;top:0;z-index:8;pointer-events:none;box-sizing:border-box;background:var(--bc);border:1.5px solid #3D4A3D;border-radius:2px;box-shadow:inset 0 0 0 2px var(--bc),inset 0 0 0 3px rgba(40,60,40,.45),0 2px 4px rgba(0,0,0,.3);font-family:var(--cond);font-stretch:condensed;font-weight:700;color:#24331F;will-change:transform}
 .bill .bc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1.9em;height:1.9em;border-radius:50%;border:1px solid rgba(40,60,40,.55);display:grid;place-items:center;background:rgba(255,255,255,.45)}
 .bill .bv{position:absolute;font-size:.75em;line-height:1}
@@ -614,6 +660,12 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
             <option value="time:60">After 60 minutes, richest wins</option>
             <option value="time:90">After 90 minutes, richest wins</option>
           </select>
+          <label for="r-grab">Money Grab card</label>
+          <select class="sel" id="r-grab">
+            <option value="swipe">Swipe the bills, one player at a time</option>
+            <option value="catch">Catch the bills, one player at a time</option>
+            <option value="split">Split evenly, no game</option>
+          </select>
         </div>
       </fieldset>
       <div class="setup-foot">
@@ -659,6 +711,7 @@ html.motion-off *,html.motion-off *::before,html.motion-off *::after{animation-d
   <filter id="tok-drop" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx=".6" dy="1.2" stdDeviation=".8" flood-color="#000" flood-opacity=".45"/></filter>
 </defs></svg>
 <dialog id="modal" aria-labelledby="modal-title"><button class="xbtn" id="modal-x" data-ui="close" aria-label="Close" title="Close" hidden>&times;</button><div class="mb" id="modal-body"></div></dialog>
+<dialog id="grab" class="grab" aria-label="Money Grab"><canvas id="grab-cv"></canvas><div class="grab-time" id="grab-time"></div><div class="grab-hud" id="grab-hud"></div><p class="grab-hint" id="grab-hint"></p><div class="grab-over" id="grab-over"></div></dialog>
 <dialog id="confirm" aria-labelledby="confirm-title"><div class="mb" id="confirm-body"></div></dialog>
 <dialog id="whatsnew" aria-labelledby="wn-title"><div class="mb" id="wn-body"></div></dialog>
 <input type="file" id="file-in" accept="application/json,.json" hidden>
@@ -727,7 +780,7 @@ const GROUPS = {}; BOARD.forEach((s,i)=>{ if(s.type==='prop') (GROUPS[s.group] |
 const RAILS = [5,15,25,35], UTILS = [12,28];
 const START_CASH = 1500, GO_SALARY = 200, JAIL_FINE = 50, JAIL = 10;
 
-/* Chance and Community Chest: 16 cards each */
+/* Chance (17 cards, with the modern Money Grab) and Community Chest (16 cards) */
 const CHANCE = [
   {text:'Advance to Boardwalk.', fx:{advanceTo:39}},
   {text:'Advance to Go. Collect $200.', fx:{advanceTo:0}},
@@ -745,6 +798,7 @@ const CHANCE = [
   {text:'Take a trip to Reading Railroad. If you pass Go, collect $200.', fx:{advanceTo:5}},
   {text:'You have been elected chairman of the board. Pay each player $50.', fx:{payEach:50}},
   {text:'Your building loan matures. Collect $150.', fx:{collect:150}},
+  {text:'Money Grab! The bank throws ten $100 bills into the air. Everyone takes a turn to grab as many as they can, and the $1,000 is shared by how many each player grabbed. Bills nobody grabs go back to the bank.', fx:{grab:10}},
 ];
 const CHEST = [
   {text:'Advance to Go. Collect $200.', fx:{advanceTo:0}},
@@ -780,7 +834,8 @@ const THEMES = {
       'Advance to the nearest utility. If it is unowned, you may buy it. If it is owned, roll the dice and pay the owner ten times the total.','Oil royalties arrive. Collect $50.',
       'A friendly sheriff owes you a favor. Get out of jail free. Keep this card until you need it, or trade it.','Your horse spooks. Go back three spaces.',
       'Caught speeding in a small town. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.','Storm damage. Make repairs on all your property. Pay $25 for each house and $100 for each hotel.',
-      'Speeding ticket on the interstate. Pay $15.','Take a trip on Texas Central. If you pass Go, collect $200.','You host the big rodeo party. Pay each player $50.','Your cattle sale closes. Collect $150.'],
+      'Speeding ticket on the interstate. Pay $15.','Take a trip on Texas Central. If you pass Go, collect $200.','You host the big rodeo party. Pay each player $50.','Your cattle sale closes. Collect $150.',
+      'Money Grab! A Panhandle twister blows ten $100 bills out of the bank. Everyone takes a turn to grab as many as they can, and the $1,000 is shared by how many each player grabbed. Bills nobody grabs go back to the bank.'],
     chest:['Head home to the ranch. Advance to Go. Collect $200.','A long-lost oil lease pays out. Collect $200.','Vet bill for the ranch dog. Pay $50.','You win the chili cook-off. Collect $50.',
       'A friendly sheriff owes you a favor. Get out of jail free. Keep this card until you need it, or trade it.','Caught speeding in a small town. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.',
       'Your rodeo prize money arrives. Receive $100.','Tax refund. Collect $20.','Family reunion potluck at your place. Collect $10 from every player.','A pecan orchard pays off. Collect $100.',
@@ -795,7 +850,8 @@ const THEMES = {
       'Advance to the nearest utility. If it is unowned, you may buy it. If it is owned, roll the dice and pay the owner ten times the total.','The stock market has a good day. Collect $50.',
       'A pardon from the governor. Get out of jail free. Keep this card until you need it, or trade it.','Detour! Go back three spaces.',
       'Pulled over on the interstate. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.','Hurricane season. Make repairs on all your property. Pay $25 for each house and $100 for each hotel.',
-      'Parking ticket downtown. Pay $15.','Take a trip on the Cross-Country Railroad. If you pass Go, collect $200.','You host the Fourth of July parade. Pay each player $50.','Your small business loan pays off. Collect $150.'],
+      'Parking ticket downtown. Pay $15.','Take a trip on the Cross-Country Railroad. If you pass Go, collect $200.','You host the Fourth of July parade. Pay each player $50.','Your small business loan pays off. Collect $150.',
+      'Money Grab! A ticker-tape parade showers ten $100 bills from the bank. Everyone takes a turn to grab as many as they can, and the $1,000 is shared by how many each player grabbed. Bills nobody grabs go back to the bank.'],
     chest:['Head home. Advance to Go. Collect $200.','You win the state lottery. Collect $200.','Doctor’s fee. Pay $50.','You sell some stock. Collect $50.',
       'A friendly judge dismisses your case. Get out of jail free. Keep this card until you need it, or trade it.','Pulled over on the interstate. Go to jail. Go directly to jail. Do not pass Go, do not collect $200.',
       'Your holiday bonus arrives. Receive $100.','Income tax refund. Collect $20.','Block party! Collect $10 from every player.','Your pension pays out. Collect $100.',
@@ -849,7 +905,8 @@ const interestFee = i => Math.ceil(BOARD[i].mort*0.1);
 function busy(s){ return !!(s.pending || s.debts.length || s.queue.length); }
 
 /* House rules and game-length options. Everything is off by default, which is the official game. */
-const DEFAULT_RULES = {parking:false, doubleGo:false, noJailRent:false, auctionTimer:0, quick:false, roundLimit:0, timeLimit:0};
+const DEFAULT_RULES = {parking:false, doubleGo:false, noJailRent:false, auctionTimer:0, quick:false, roundLimit:0, timeLimit:0, grab:'swipe'};
+const GRAB_MODES = {swipe:'Swipe', catch:'Catch', split:'Split evenly'}, GRAB_BILL = 100;
 const blankStats = () => ({rentPaid:0, rentGot:0, bigRent:null, jail:0, bought:0, built:0, doubles:0, go:0, trades:0});
 function newGame(cfg){
   const s = {v:1, seed:cfg.seed>>>0, rng:cfg.seed>>>0, turnNo:1, cur:0, first:0, round:1, phase:'start', doubles:0, dice:null,
@@ -860,8 +917,8 @@ function newGame(cfg){
   s.players = ps.map((p,i)=>({id:i, name:p.name, token:p.token, color:p.color, bot:!!p.bot, cash:START_CASH, pos:0, inJail:false, jailTurns:0, cards:[], bankrupt:false, lastOffer:null}));
   s.stats = s.players.map(blankStats);
   for(const i of OWNABLE) s.props[i] = {owner:null, houses:0, mortgaged:false};
-  s.decks.chance = shuffle(s, [...Array(16).keys()]);
-  s.decks.chest = shuffle(s, [...Array(16).keys()]);
+  s.decks.chance = shuffle(s, [...Array(CHANCE.length).keys()]);
+  s.decks.chest = shuffle(s, [...Array(CHEST.length).keys()]);
   if(cfg.pickFirst && cfg.firstBy==='roll'){
     // Roll-off: everyone rolls two dice, the highest total goes first, and anyone tied rolls again.
     s.rollOff = []; let ids = s.players.map(p=>p.id);
@@ -887,6 +944,10 @@ function migrate(s){
   s.rules = {...DEFAULT_RULES, ...(s.rules||{})};
   s.theme = themeOf(s.theme); s.pot ??= 0; s.playMs ??= 0; s.round ??= 1; s.first ??= 0; s.endReason ??= null;
   s.players.forEach(p=>{ p.bot = !!p.bot; p.lastOffer ??= null; });
+  if(!GRAB_MODES[s.rules.grab]) s.rules.grab = 'swipe';
+  // Games saved before Money Grab existed get the card at the bottom of the Chance pile.
+  const gid = CHANCE.findIndex(c=>c.fx.grab);
+  if(gid>=0 && !s.decks.chance.includes(gid) && !(s.pending && s.pending.deck==='chance' && s.pending.card===gid)) s.decks.chance.push(gid);
   if(!Array.isArray(s.stats) || s.stats.length!==s.players.length) s.stats = s.players.map(blankStats);
   if(!Array.isArray(s.worth) || !s.worth.length) s.worth = [s.players.map(p=>p.bankrupt?0:netWorth(s, p.id))];
   return s;
@@ -1073,6 +1134,37 @@ function applyCard(s){
   }
   else if(fx.payEach){ for(const o of alive(s)) if(o!==pi) charge(s, pi, fx.payEach, o, 'the chairman card'); }
   else if(fx.collectEach){ for(const o of alive(s)) if(o!==pi) charge(s, o, fx.collectEach, pi, `${p.name}’s birthday`); }
+  else if(fx.grab) startGrab(s, pi, fx.grab);
+}
+
+/* ---------- Money Grab ----------
+   Ten $100 bills fly up. In Swipe and Catch, each player in turn plays the same shower
+   (same seed) and the $1,000 is shared in proportion to the bills each grabbed.
+   Split evenly shares it with no game. Bills nobody grabs stay in the bank. */
+function startGrab(s, pi, bills){
+  const N = s.players.length, order = alive(s).sort((a,b)=>((a-pi+N)%N)-((b-pi+N)%N));
+  log(s, `Money Grab! ${bills} bills of ${money(GRAB_BILL)} fly into the air.`, 'money');
+  if(s.rules.grab==='split'){ splitGrab(s, order, bills); return; }
+  s.pending = {type:'grab', player:order[0], order, at:0, caught:{}, bills, mode:s.rules.grab, seed:Math.floor(rand(s)*2147483647)};
+}
+function splitGrab(s, order, bills){
+  const each = Math.floor(bills*GRAB_BILL/order.length/10)*10;
+  s.fx.push({type:'grabBurst', bills});
+  for(const q of order) credit(s, q, each, 'Money Grab, shared evenly');
+}
+function finishGrab(s, pd){
+  s.pending = null;
+  const total = pd.order.reduce((n,q)=>n+pd.caught[q], 0), units = pd.bills*GRAB_BILL/10;
+  const rows = pd.order.map(q=>({player:q, caught:pd.caught[q], amount:0}));
+  if(!total){ log(s, 'Nobody grabbed a bill, so all of it goes back to the bank.'); s.fx.push({type:'grabResults', rows, bills:pd.bills}); return; }
+  // Largest remainder in $10 steps, so the shares add up to exactly the pot.
+  const exact = rows.map(r=>units*r.caught/total);
+  rows.forEach((r,k)=>r.amount = Math.floor(exact[k]));
+  let left = units - rows.reduce((n,r)=>n+r.amount, 0);
+  rows.map((r,k)=>k).sort((a,b)=>(exact[b]-Math.floor(exact[b]))-(exact[a]-Math.floor(exact[a])) || a-b).forEach(k=>{ if(left>0 && rows[k].caught){ rows[k].amount++; left--; } });
+  rows.forEach(r=>r.amount *= 10);
+  s.fx.push({type:'grabResults', rows, bills:pd.bills});
+  for(const r of rows) if(r.amount>0) credit(s, r.player, r.amount, `Money Grab (${r.caught} of ${pd.bills} bills)`);
 }
 
 /* ---------- building ---------- */
@@ -1324,6 +1416,26 @@ const HANDLERS = {
     placeBuilding(s, a.space); s.pending = null;
     log(s, `${nm(s,pd.player)} placed a ${pd.kind} on ${BOARD[a.space].name}.`);
   },
+  GRAB_SCORE(s, a){
+    const pd = s.pending; need(pd && pd.type==='grab', 'There is no Money Grab going on.');
+    const q = pd.order[pd.at]; need(a.player===q, 'It is not that player’s turn to grab.');
+    let c;
+    if(a.caught==null){ need(s.players[q].bot, 'Say how many bills were grabbed.'); c = 3 + Math.floor(rand(s)*6); }
+    else { c = a.caught; need(Number.isInteger(c) && c>=0 && c<=pd.bills, 'That is not a possible number of bills.'); }
+    pd.caught[q] = c;
+    log(s, `${nm(s,q)} grabbed ${c} bill${c===1?'':'s'}.`);
+    pd.at++;
+    if(pd.at>=pd.order.length) finishGrab(s, pd); else pd.player = pd.order[pd.at];
+  },
+  GRAB_SPLIT(s){
+    const pd = s.pending; need(pd && pd.type==='grab' && pd.at===0, 'Sharing evenly is only possible before anyone has grabbed.');
+    s.pending = null; log(s, 'The players chose to share the Money Grab evenly.'); splitGrab(s, pd.order, pd.bills);
+  },
+  SET_GRAB(s, a){
+    need(GRAB_MODES[a.mode], 'Unknown Money Grab style.'); need(a.mode!==s.rules.grab, 'That style is already on.');
+    need(!(s.pending && s.pending.type==='grab'), 'Finish this Money Grab first.');
+    s.rules.grab = a.mode; log(s, `Money Grab is now played as: ${GRAB_MODES[a.mode]}.`);
+  },
   CARD_ACK(s){ need(s.pending && s.pending.type==='card', 'There is no card to read.'); applyCard(s); },
   BUILD(s, a){
     const i = a.space, pr = s.props[i], sp = BOARD[i]; need(pr, 'Choose a property.');
@@ -1519,6 +1631,7 @@ function botAction(s, onlyBots=false){
   const pd = s.pending;
   if(pd){
     if(pd.type==='roundlimit') return humans(s).length ? null : {type:'ROUND_LIMIT', choice:'finish'};
+    if(pd.type==='grab') return isBot(pd.player) ? {type:'GRAB_SCORE', player:pd.player, caught:s.players[pd.player].bot ? null : 5} : null;
     if(pd.type==='auction'){
       const value = pd.kind==='property' ? null : pd.min*1.5;
       for(const q of pd.active){ if(q===pd.highBidder || !isBot(q)) continue;
@@ -1626,8 +1739,13 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.16.1';
+const APP_VERSION = '2.17.0';
 const RELEASES = [
+  {version:'2.17.0', date:'2026-11-28', title:'Money Grab', changes:[
+    'New Chance card from the modern game: Money Grab! Ten $100 bills fly into the air.',
+    'Swipe (the default): slice the bills as they fly up. Catch: drag a money bag under the falling bills. Each player plays the same shower in turn, and the $1,000 is shared by how many each player grabbed.',
+    'Split evenly shares the $1,000 with no game. Pick the style when you set up a game or any time from the Game menu.',
+  ]},
   {version:'2.16.1', date:'2026-11-28', title:'Confirm before mortgaging', changes:[
     'Mortgaging or unmortgaging a property now asks you to confirm first, and shows the money involved.',
   ]},
@@ -1871,7 +1989,7 @@ setInterval(()=>{
   if(left<=0 && !ui.animating){ ui.auctionKey = null; dispatch({type:'AUCTION_CLOSE'}); }
 }, 200);
 function undo(){
-  if(ui.animating || !ui.history.length) return;
+  if(ui.animating || ui.grabbing || !ui.history.length) return;
   const h = ui.history.pop(); const played = ui.state.playMs; ui.state = h.state; ui.state.playMs = played;
   ui.handoffSeen = Math.min(ui.handoffSeen, ui.state.turnNo);
   ui.displayPos = ui.state.players.map(p=>p.pos);
@@ -1881,7 +1999,7 @@ function undo(){
 const BOT_DELAY = 650;
 function scheduleBot(){
   const s = ui.state;
-  if(!s || ui.botTimer || ui.animating || s.phase==='over' || $('#game').hidden || ui.spin || ui.userModal || $('#whatsnew').open) return;
+  if(!s || ui.botTimer || ui.animating || ui.grabbing || $('#grab').open || s.phase==='over' || $('#game').hidden || ui.spin || ui.userModal || $('#whatsnew').open) return;
   if(!botAction(s, true)) return;
   ui.botTimer = setTimeout(()=>{
     ui.botTimer = null;
@@ -1910,6 +2028,8 @@ async function playFx(fx){
     else if(f.type==='sold'){ if(!fast) running.push(stampSold(f.space)); }
     else if(f.type==='monopoly') await celebrateMonopoly(f, fast);
     else if(f.type==='sound') sfx.play(f.name);
+    else if(f.type==='grabBurst') await showGrabBurst(f);
+    else if(f.type==='grabResults') await showGrabResults(f);
   }
   await Promise.all(running);
 }
@@ -2199,6 +2319,276 @@ function flyMoney(f){
     {duration:1000, delay:700+bills.length*75, fill:'backwards'}).finished.catch(()=>{}).then(()=>tag.remove());
   if(f.pot && f.to==null) Promise.all(runs).then(()=>{ const bag = $('.space.t-parking .bag', board); bag?.animate?.([{transform:'translate(-50%,0) scale(var(--bs))'},{transform:'translate(-50%,0) scale(calc(var(--bs) * 1.15))'},{transform:'translate(-50%,0) scale(var(--bs))'}], {duration:360, easing:'ease-out'}); });
   return Promise.all([...runs, t1]);
+}
+/* ---------- Money Grab: the mini-games ----------
+   Everything is drawn on one full-screen canvas in the #grab dialog. The shower comes from a
+   seed stored in the game, so every player faces exactly the same bills. */
+const grabRng = seed => { let a = seed>>>0; return ()=>{ a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a>>>15, 1 | a); t = t + Math.imul(t ^ t>>>7, 61 | t) ^ t; return ((t ^ t>>>14)>>>0) / 4294967296; }; };
+function billSprite(w, h, back){
+  const dpr = Math.min(2, devicePixelRatio||1), c = document.createElement('canvas');
+  c.width = Math.ceil(w*dpr); c.height = Math.ceil(h*dpr);
+  const g = c.getContext('2d'); g.scale(dpr, dpr);
+  const font = getComputedStyle(document.body).fontFamily;
+  const rr = (x,y,ww,hh,r)=>{ g.beginPath(); if(g.roundRect) g.roundRect(x,y,ww,hh,r); else g.rect(x,y,ww,hh); };
+  const paper = g.createLinearGradient(0, 0, w, h);
+  paper.addColorStop(0, back ? '#DFC98C' : '#F3E3AE'); paper.addColorStop(.55, back ? '#D4BC79' : '#EAD69B'); paper.addColorStop(1, back ? '#C8AE68' : '#DFC683');
+  rr(.75, .75, w-1.5, h-1.5, h*.07); g.fillStyle = paper; g.fill();
+  g.lineWidth = Math.max(1, h*.035); g.strokeStyle = '#3D4A3D'; g.stroke();
+  const m = h*.1; rr(m, m, w-2*m, h-2*m, h*.05);
+  g.save(); g.clip();
+  g.strokeStyle = 'rgba(61,86,52,.16)'; g.lineWidth = .7;          // engraved wave lines
+  for(let k=-h; k<w+h; k+=h*.085){ g.beginPath(); g.moveTo(k, h); g.bezierCurveTo(k+h*.3, h*.55, k+h*.2, h*.45, k+h*.55, 0); g.stroke(); }
+  g.restore();
+  rr(m, m, w-2*m, h-2*m, h*.05); g.lineWidth = Math.max(.8, h*.02); g.strokeStyle = 'rgba(40,62,40,.6)'; g.stroke();
+  g.fillStyle = '#2C3A2C'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if(!back){
+    g.beginPath(); g.ellipse(w/2, h/2, h*.33, h*.33, 0, 0, Math.PI*2);
+    const med = g.createRadialGradient(w/2-h*.08, h/2-h*.1, 1, w/2, h/2, h*.34); med.addColorStop(0, 'rgba(255,255,255,.85)'); med.addColorStop(1, 'rgba(255,255,255,.35)');
+    g.fillStyle = med; g.fill(); g.strokeStyle = 'rgba(40,62,40,.65)'; g.lineWidth = Math.max(1, h*.025); g.stroke();
+    g.fillStyle = '#2C3A2C'; g.font = `800 ${h*.27}px ${font}`; g.fillText('100', w/2, h*.53);
+    g.font = `800 ${h*.17}px ${font}`; g.fillText('100', m+h*.2, m+h*.15); g.fillText('100', w-m-h*.2, h-m-h*.15);
+    g.font = `700 ${h*.095}px ${font}`; g.fillText('ONE HUNDRED', w*.24, h-m-h*.13); g.fillText('ONE HUNDRED', w*.76, m+h*.14);
+  } else {
+    g.globalAlpha = .55; g.font = `800 ${h*.42}px ${font}`; g.fillText('$100', w/2, h*.54); g.globalAlpha = 1;
+    g.font = `700 ${h*.1}px ${font}`; g.fillText('BANK NOTE', w/2, h-m-h*.13);
+  }
+  return c;
+}
+/* Spawn times with a rhythm: singles, pairs and the odd triple. */
+function grabRhythm(r, n, span){
+  const t = []; let at = 0;
+  while(t.length<n){ const k = Math.min(n-t.length, r()<.45 ? 1 : r()<.75 ? 2 : 3); for(let j=0;j<k;j++) t.push(at + j*.13); at += .5 + r()*.45; }
+  const last = t[t.length-1] || 1; return t.map(x=>.1 + x*span/last);
+}
+function grabStage(){
+  const dlg = $('#grab'), cv = $('#grab-cv');
+  $('#grab-hud').innerHTML = ''; $('#grab-over').innerHTML = ''; $('#grab-hint').textContent = ''; $('#grab-time').style.transform = 'scaleX(0)';
+  if(!dlg.open) dlg.showModal();
+  const dpr = Math.min(2, devicePixelRatio||1), W = dlg.clientWidth || innerWidth, H = dlg.clientHeight || innerHeight;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); cv.style.width = W+'px'; cv.style.height = H+'px';
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const bw = Math.max(84, Math.min(164, Math.min(W, H*1.25)*.27)), bh = bw*.5;
+  // Background: deep blueprint navy, a faint grid and a soft spotlight, drawn once.
+  const bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height;
+  const b = bg.getContext('2d'); b.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const lg = b.createLinearGradient(0, 0, 0, H); lg.addColorStop(0, '#0B2A50'); lg.addColorStop(1, '#05172E'); b.fillStyle = lg; b.fillRect(0, 0, W, H);
+  b.strokeStyle = 'rgba(160,200,240,.07)'; b.lineWidth = 1; const step = Math.max(24, Math.min(W, H)/14);
+  for(let x=(W%step)/2; x<W; x+=step){ b.beginPath(); b.moveTo(x+.5, 0); b.lineTo(x+.5, H); b.stroke(); }
+  for(let y=(H%step)/2; y<H; y+=step){ b.beginPath(); b.moveTo(0, y+.5); b.lineTo(W, y+.5); b.stroke(); }
+  const sp = b.createRadialGradient(W/2, H*.42, 0, W/2, H*.42, Math.max(W, H)*.7); sp.addColorStop(0, 'rgba(255,226,140,.13)'); sp.addColorStop(.5, 'rgba(255,226,140,.03)'); sp.addColorStop(1, 'rgba(0,0,0,.35)');
+  b.fillStyle = sp; b.fillRect(0, 0, W, H);
+  return {dlg, cv, g, W, H, bw, bh, bg, front:billSprite(bw, bh, false), back:billSprite(bw, bh, true), font:getComputedStyle(document.body).fontFamily};
+}
+function grabLoop(step){
+  let raf = 0, last = performance.now(), t = 0, on = true;
+  const tick = now => { if(!on) return; const dt = Math.min(.034, (now-last)/1000); last = now; t += dt; step(dt, t); raf = requestAnimationFrame(tick); };
+  raf = requestAnimationFrame(tick);
+  return ()=>{ on = false; cancelAnimationFrame(raf); };
+}
+function drawBill(S, b, alpha=1){
+  const g = S.g, f = Math.cos(b.flip);
+  g.save(); g.globalAlpha = alpha; g.translate(b.x, b.y); g.rotate(b.rot);
+  g.scale(b.sc||1, (b.sc||1)*Math.max(.1, Math.abs(f)));
+  g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 10; g.shadowOffsetY = 5;
+  g.drawImage(f>=0 ? S.front : S.back, -S.bw/2, -S.bh/2, S.bw, S.bh);
+  if(Math.abs(f)<.5){ g.shadowColor = 'transparent'; g.fillStyle = `rgba(30,40,20,${(.5-Math.abs(f))*.5})`; g.fillRect(-S.bw/2, -S.bh/2, S.bw, S.bh); }
+  g.restore();
+}
+function drawHalf(S, h){
+  const g = S.g, img = S.front, iw = img.width/2;
+  g.save(); g.globalAlpha = Math.max(0, Math.min(1, h.life*3)); g.translate(h.x, h.y); g.rotate(h.rot);
+  g.shadowColor = 'rgba(0,0,0,.3)'; g.shadowBlur = 8; g.shadowOffsetY = 4;
+  g.drawImage(img, h.side*iw, 0, iw, img.height, -S.bw/4, -S.bh/2, S.bw/2, S.bh);
+  g.restore();
+}
+/* Sparkles, confetti and floating "+$100" tags. */
+function burstFx(parts, x, y, n, colors, speed){
+  for(let k=0;k<n;k++){ const a = Math.random()*Math.PI*2, v = speed*(.35+Math.random()*.8);
+    parts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v - speed*.3, life:.55+Math.random()*.45, max:1, c:colors[k%colors.length], s:2+Math.random()*3.5, rot:Math.random()*6, vr:(Math.random()-.5)*14, kind:k%3?'spark':'conf'}); }
+}
+function stepParts(S, parts, dt){
+  const g = S.g;
+  for(let k=parts.length-1;k>=0;k--){ const p = parts[k]; p.life -= dt; if(p.life<=0){ parts.splice(k, 1); continue; }
+    p.x += p.vx*dt; p.y += p.vy*dt; p.rot += (p.vr||0)*dt;
+    if(p.kind==='text'){ p.vy *= .92; const a = Math.min(1, p.life*2.4), sc = 1 + (1-Math.min(1, (p.max-p.life)*6))*.6;
+      g.save(); g.globalAlpha = a; g.translate(p.x, p.y); g.scale(sc, sc); g.font = `800 ${S.bh*.42}px ${S.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 5; g.strokeStyle = 'rgba(5,23,46,.85)'; g.strokeText(p.text, 0, 0); g.fillStyle = p.c; g.fillText(p.text, 0, 0); g.restore(); continue; }
+    p.vy += S.H*.9*dt; p.vx *= .985;
+    g.save(); g.globalAlpha = Math.min(1, p.life*2); g.translate(p.x, p.y); g.rotate(p.rot); g.fillStyle = p.c;
+    if(p.kind==='spark'){ g.shadowColor = p.c; g.shadowBlur = 8; g.beginPath(); g.arc(0, 0, p.s*.6, 0, Math.PI*2); g.fill(); }
+    else g.fillRect(-p.s, -p.s*.45, p.s*2, p.s*.9);
+    g.restore(); }
+}
+function floatText(parts, x, y, text, c='#FFE38A'){ parts.push({kind:'text', x, y, vx:0, vy:-90, life:.9, max:.9, text, c}); }
+const GOLD = ['#FFE38A', '#F5C84B', '#FFF6D6', '#9AD39A', '#E8D39B'];
+function segDist(px, py, ax, ay, bx, by){
+  const dx = bx-ax, dy = by-ay, L = dx*dx + dy*dy; let t = L ? ((px-ax)*dx + (py-ay)*dy)/L : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px-(ax+dx*t), py-(ay+dy*t));
+}
+/* A burlap money bag with a rope tie in the player's color. */
+function drawBag(S, x, top, w, squash, color){
+  const g = S.g, h = w*.95, sx = 1 + squash*.12, sy = 1 - squash*.14;
+  g.save(); g.translate(x, top + h*.55); g.scale(sx, sy); g.translate(0, -h*.55);
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(0, h*1.02, w*.5, w*.09, 0, 0, Math.PI*2); g.fill();
+  const body = new Path2D(); body.moveTo(-w*.34, h*.12);
+  body.bezierCurveTo(-w*.62, h*.36, -w*.62, h*.98, 0, h*.98); body.bezierCurveTo(w*.62, h*.98, w*.62, h*.36, w*.34, h*.12); body.closePath();
+  const bg = g.createLinearGradient(-w*.5, 0, w*.5, h); bg.addColorStop(0, '#D9B77A'); bg.addColorStop(.6, '#B88E52'); bg.addColorStop(1, '#8E6A37');
+  g.fillStyle = bg; g.fill(body); g.lineWidth = 2.5; g.strokeStyle = '#5B4423'; g.stroke(body);
+  g.save(); g.clip(body); g.strokeStyle = 'rgba(90,60,25,.18)'; g.lineWidth = 1;
+  for(let k=-w; k<w; k+=6){ g.beginPath(); g.moveTo(k, 0); g.lineTo(k+w*.3, h); g.stroke(); } g.restore();
+  g.fillStyle = 'rgba(70,45,15,.75)'; g.font = `800 ${w*.42}px ${S.font}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('$', 0, h*.62);
+  // open mouth
+  g.fillStyle = '#3B2A14'; g.beginPath(); g.ellipse(0, h*.1, w*.42, w*.1, 0, 0, Math.PI*2); g.fill();
+  g.lineWidth = 4; g.strokeStyle = color; g.beginPath(); g.ellipse(0, h*.1, w*.42, w*.1, 0, 0, Math.PI*2); g.stroke();
+  g.restore();
+}
+/* One player's turn. Resolves with the number of bills grabbed. */
+function playGrab({mode, seed, bills, player}){
+  return new Promise(resolve=>{
+    const S = grabStage(), {g, W, H, bw, bh} = S, r = grabRng(seed), p = ui.state.players[player], swipe = mode==='swipe';
+    const times = grabRhythm(r, bills, swipe ? 4.6 : 5.2), grav = H*1.25;
+    const L = times.map(t0=>{
+      const b = {t0, state:'wait', rot:(r()-.5)*1.2, vr:(r()-.5)*5, flip:r()*6.3, fs:2+r()*4};
+      if(swipe){ b.x = W*(.18 + .64*r()); b.y = H + bh*.7; const peak = H*(.5 + .3*r()); b.vy = -Math.sqrt(2*grav*(peak + bh*.7)); const T = -2*b.vy/grav; b.vx = ((W/2 - b.x)*(.3 + .6*r()) + (r()-.5)*W*.2)/T; b.end = t0 + T; }
+      else { b.x0 = W*(.12 + .76*r()); b.y = -bh; b.vy = H*(.24 + .1*r()); b.amp = W*(.03 + .05*r()); b.w = 1.6 + 1.6*r(); b.ph = r()*6.3; b.x = b.x0; b.end = t0 + (H + bh*2)/b.vy; }
+      return b; });
+    const tEnd = Math.max(...L.map(b=>b.end)) + .2, COUNT = 1.5;
+    let caught = 0, combo = 0, lastCut = -9, trail = [], down = false, done = false, bagX = W/2, bagT = W/2, squash = 0, lastSwish = 0;
+    const halves = [], parts = [], bagW = Math.max(96, Math.min(176, W*.26)), bagTop = H - bagW*.95 - Math.max(18, H*.04);
+    $('#grab-hud').innerHTML = `${tokenDisc(p)}<span class="gh-name">${esc(p.name)}</span><span class="gh-count" id="gh-count"><i class="mini"></i><b>0</b><small>/ ${bills}</small></span>`;
+    const hint = $('#grab-hint'); hint.textContent = swipe ? 'Swipe through the bills to grab them' : 'Drag the bag under the falling bills'; hint.style.opacity = '1'; hint.style.bottom = swipe ? '' : `${Math.round(H - bagTop + 16)}px`;
+    const bump = ()=>{ const c = $('#gh-count'); $('b', c).textContent = caught; c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); };
+    const grabbed = (x, y)=>{ caught++; bump(); floatText(parts, x, y - bh*.4, '+$100'); burstFx(parts, x, y, 18, GOLD, H*.55); };
+    const cut = (b, dx, dy)=>{
+      b.state = 'cut'; const n = Math.hypot(dx, dy) || 1, nx = -dy/n, ny = dx/n, sp = H*.18, c = Math.cos(b.rot), s = Math.sin(b.rot);
+      [0, 1].forEach(side=>{ const o = side ? bw/4 : -bw/4, k = side ? 1 : -1;
+        halves.push({side, x:b.x + c*o, y:b.y + s*o, vx:b.vx*.5 + nx*sp*k + c*k*sp*.6, vy:Math.min(b.vy, 0)*.3 + ny*sp*k - H*.15, rot:b.rot, vr:k*(3 + Math.random()*3), life:1}); });
+      const now = performance.now()/1000; combo = now - lastCut < .35 ? combo + 1 : 0; lastCut = now;
+      grabbed(b.x, b.y); if(combo>=1) floatText(parts, b.x, b.y - bh*1.1, combo===1 ? 'Double!' : combo===2 ? 'Triple!' : 'Combo!', '#9AD39A');
+      sfx.noise(.09, {freq:6500, q:.7, gain:.16}); sfx.tone(784*(1 + .06*Math.min(caught, 10)), .14, {type:'triangle', gain:.08});
+    };
+    const pt = e=>{ const rc = S.cv.getBoundingClientRect(); return {x:e.clientX - rc.left, y:e.clientY - rc.top, t:performance.now()}; };
+    const onDown = e=>{ if(done) return; e.preventDefault(); try{ S.cv.setPointerCapture(e.pointerId); }catch(_){}
+      down = true; const q = pt(e); if(swipe) trail = [q]; else bagT = q.x; };
+    const onMove = e=>{ if(done) return; const q = pt(e);
+      if(!swipe){ if(down || e.pointerType==='mouse') bagT = q.x; return; }
+      if(!down) return; const a = trail[trail.length-1] || q; trail.push(q);
+      const d = Math.hypot(q.x - a.x, q.y - a.y);
+      if(d > 30 && q.t - lastSwish > 140){ lastSwish = q.t; sfx.noise(.07, {freq:2600, q:.6, gain:.05}); }
+      if(d < 3 || clock < 0) return;
+      for(const b of L) if(b.state==='fly' && segDist(b.x, b.y, a.x, a.y, q.x, q.y) < bw*.42) cut(b, q.x - a.x, q.y - a.y); };
+    const onUp = ()=>{ down = false; };
+    const onKey = e=>{ if(done) return;
+      if(!swipe && (e.key==='ArrowLeft' || e.key==='ArrowRight')){ e.preventDefault(); bagT = Math.max(bagW/2, Math.min(W - bagW/2, bagT + (e.key==='ArrowLeft' ? -1 : 1)*W*.09)); }
+      if(swipe && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); const b = L.filter(b=>b.state==='fly').sort((a,c)=>a.y-c.y)[0]; if(b) cut(b, 1, -.3); } };
+    S.cv.addEventListener('pointerdown', onDown); S.cv.addEventListener('pointermove', onMove);
+    S.cv.addEventListener('pointerup', onUp); S.cv.addEventListener('pointercancel', onUp); S.dlg.addEventListener('keydown', onKey);
+    let clock = -COUNT, beeped = 4;
+    const stop = grabLoop((dt)=>{
+      clock += dt;
+      g.drawImage(S.bg, 0, 0, W, H);
+      if(clock < 0){ const n = Math.ceil(-clock*2), k = (-clock*2) % 1;
+        if(n !== beeped){ beeped = n; sfx.tone(n>0 ? 520 : 880, .12, {type:'triangle', gain:.08}); }
+        g.save(); g.translate(W/2, H*.45); g.scale(1 + k*.6, 1 + k*.6); g.globalAlpha = Math.min(1, (1-k)*2.2);
+        g.font = `800 ${Math.min(W, H)*.26}px ${S.font}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = 'rgba(255,214,90,.7)'; g.shadowBlur = 30;
+        g.fillStyle = '#FFE9A3'; g.fillText(String(Math.max(1, n > 3 ? 3 : n)), 0, 0); g.restore();
+        if(!swipe) drawBag(S, bagX, bagTop, bagW, 0, p.color);
+        return; }
+      if(beeped > 0){ beeped = 0; sfx.tone(880, .18, {type:'triangle', gain:.1}); floatText(parts, W/2, H*.42, 'Grab!', '#FFE9A3'); }
+      if(clock > 1.8) hint.style.opacity = '0';
+      $('#grab-time').style.transform = `scaleX(${Math.max(0, 1 - clock/tEnd)})`;
+      // the catcher bag glides toward the finger
+      if(!swipe){ bagX += (bagT - bagX)*(1 - Math.exp(-dt*16)); bagX = Math.max(bagW/2, Math.min(W - bagW/2, bagX)); squash *= Math.exp(-dt*9); }
+      for(const b of L){
+        if(b.state==='wait' && clock >= b.t0){ b.state = 'fly'; if(!swipe) sfx.noise(.08, {freq:4200, q:.6, gain:.04}); }
+        if(b.state==='fly'){
+          b.rot += b.vr*dt; b.flip += b.fs*dt;
+          if(swipe){ b.vy += grav*dt; b.x += b.vx*dt; b.y += b.vy*dt; if(b.vy>0 && b.y > H + bh) b.state = 'gone'; }
+          else {
+            const tt = clock - b.t0; b.y += b.vy*dt; b.x = b.x0 + Math.sin(tt*b.w + b.ph)*b.amp; b.rot = Math.sin(tt*b.w + b.ph + 1)*.55;
+            if(b.y > bagTop - bh*.15 && b.y < bagTop + bh*.45 && Math.abs(b.x - bagX) < bagW*.46){
+              b.state = 'caught'; b.ct = 0; b.cx = b.x; b.cy = b.y; squash = 1;
+              grabbed(bagX, bagTop); sfx.tone(700 + 45*caught, .12, {gain:.1}); sfx.noise(.06, {freq:3000, q:.8, gain:.08}); }
+            else if(b.y > H + bh) b.state = 'gone'; }
+          drawBill(S, b, b.state==='gone' ? 0 : 1); }
+        else if(b.state==='caught' && b.ct < 1){ b.ct += dt*5; const k = Math.min(1, b.ct);
+          drawBill(S, {x:b.cx + (bagX - b.cx)*k, y:b.cy + (bagTop + bh*.2 - b.cy)*k, rot:b.rot*(1-k), flip:0, sc:1 - k*.7}, 1 - k*.6); }
+      }
+      for(let k=halves.length-1;k>=0;k--){ const h = halves[k]; h.life -= dt*.9; h.vy += grav*dt; h.x += h.vx*dt; h.y += h.vy*dt; h.rot += h.vr*dt;
+        if(h.life<=0 || h.y > H + bh) halves.splice(k, 1); else drawHalf(S, h); }
+      if(!swipe) drawBag(S, bagX, bagTop, bagW, squash, p.color);
+      stepParts(S, parts, dt);
+      if(swipe){ const now = performance.now(); trail = trail.filter(q=>now - q.t < 130);
+        if(trail.length>1){ g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+          for(let k=1;k<trail.length;k++){ const a = trail[k-1], q = trail[k], f = k/trail.length;
+            g.strokeStyle = `rgba(255,226,140,${f*.55})`; g.lineWidth = 3 + f*14; g.shadowColor = '#FFD54A'; g.shadowBlur = 18;
+            g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(q.x, q.y); g.stroke();
+            g.strokeStyle = `rgba(255,255,255,${f*.95})`; g.lineWidth = 1 + f*4; g.shadowBlur = 0; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(q.x, q.y); g.stroke(); }
+          g.restore(); } }
+      const settled = L.every(b=>b.state==='gone' || b.state==='cut' || (b.state==='caught' && b.ct>=1));
+      if(!done && ((settled && !halves.length) || clock > tEnd + 1.5)){
+        done = true; sfx.play(caught ? 'collect' : 'pay'); $('#grab-time').style.transform = 'scaleX(0)';
+        const nextUp = ui.state.pending && ui.state.pending.order ? ui.state.pending.order[ui.state.pending.at+1] : null;
+        $('#grab-over').innerHTML = `<div class="g-card"><p class="g-who">${tokenDisc(p)}${esc(p.name)}</p><div class="g-big">${caught}</div><p>of ${bills} bills grabbed</p>
+          <button class="btn primary" id="grab-done" autofocus>${nextUp!=null ? `Done. Pass to ${esc(nm(ui.state, nextUp))}` : 'See the results'}</button></div>`;
+        $('#grab-done').focus();
+        $('#grab-done').onclick = ()=>{ stop(); S.cv.removeEventListener('pointerdown', onDown); S.cv.removeEventListener('pointermove', onMove);
+          S.cv.removeEventListener('pointerup', onUp); S.cv.removeEventListener('pointercancel', onUp); S.dlg.removeEventListener('keydown', onKey); resolve(caught); };
+      }
+    });
+  });
+}
+/* Starts a person's Money Grab turn from the intro window. */
+async function startGrabTurn(){
+  const s = ui.state, pd = s && s.pending; if(!pd || pd.type!=='grab' || ui.grabbing || ui.animating) return;
+  ui.grabbing = true;
+  try {
+    const caught = await playGrab({mode:pd.mode, seed:pd.seed, bills:pd.bills, player:pd.player});
+    ui.grabbing = false; await dispatch({type:'GRAB_SCORE', player:pd.player, caught});
+  } finally { ui.grabbing = false; if(!ui.grabShowing) closeGrab(); scheduleBot(); }
+}
+function closeGrab(){ const d = $('#grab'); if(d.open) d.close(); }
+/* Bills drift down behind a results card or a split announcement. */
+function ambientBills(S, mode){
+  const r = Math.random, L = [], grav = S.H*1.1;
+  const n = mode==='burst' ? 14 : 9;
+  for(let k=0;k<n;k++){
+    if(mode==='burst'){ const a = -Math.PI/2 + (r()-.5)*1.3, v = S.H*(1.1 + r()*.5); L.push({x:S.W/2, y:S.H + S.bh, vx:Math.cos(a)*v*.55, vy:Math.sin(a)*v, rot:r()*6, vr:(r()-.5)*6, flip:r()*6, fs:3 + r()*4, t0:k*.05, fl:false}); }
+    else L.push({x:r()*S.W, y:-S.bh - r()*S.H, vy:S.H*(.07 + r()*.06), amp:S.W*.04, w:1 + r(), ph:r()*6, x0:r()*S.W, rot:0, flip:r()*6, fs:1.5 + r()*2, t0:0});
+  }
+  const parts = [];
+  return grabLoop((dt, t)=>{
+    S.g.drawImage(S.bg, 0, 0, S.W, S.H);
+    for(const b of L){ if(t < b.t0) continue; b.flip += b.fs*dt;
+      if(mode==='burst'){ if(!b.fl && b.vy > -S.H*.15){ b.fl = true; b.x0 = b.x; b.amp = S.W*.03; b.w = 2; b.ph = r()*6; b.vy = S.H*.12; }
+        if(b.fl){ b.y += b.vy*dt; b.x0 += b.vx*dt*.25; b.x = b.x0 + Math.sin(t*b.w + b.ph)*b.amp; b.rot = Math.sin(t*b.w + b.ph)*.5; }
+        else { b.vy += grav*dt; b.x += b.vx*dt; b.y += b.vy*dt; b.rot += b.vr*dt; } }
+      else { b.y += b.vy*dt; b.x = b.x0 + Math.sin(t*b.w + b.ph)*b.amp; b.rot = Math.sin(t*b.w + b.ph + 1)*.5; if(b.y > S.H + S.bh){ b.y = -S.bh; b.x0 = r()*S.W; } }
+      drawBill(S, b, .95); }
+    stepParts(S, parts, dt);
+  });
+}
+async function showGrabBurst(f){
+  if(reducedMotion() || !humans(ui.state).length) return;
+  ui.grabShowing = true;
+  const S = grabStage(), stop = ambientBills(S, 'burst'); sfx.noise(.4, {freq:5000, q:.5, gain:.12}); sfx.play('collect');
+  const each = Math.floor(f.bills*GRAB_BILL/alive(ui.state).length/10)*10;
+  $('#grab-over').innerHTML = `<div class="g-banner"><strong>Money Grab!</strong><span>Shared evenly: ${money(each)} each</span></div>`;
+  await sleep(1900); stop(); closeGrab(); ui.grabShowing = false;
+}
+async function showGrabResults(f){
+  if(reducedMotion() || !humans(ui.state).length) return;
+  ui.grabShowing = true;
+  const S = grabStage(), stop = ambientBills(S, 'rain'), s = ui.state, best = Math.max(...f.rows.map(r=>r.caught));
+  const rows = [...f.rows].sort((a,b)=>b.caught - a.caught);
+  $('#grab-over').innerHTML = `<div class="g-card g-res" role="dialog" aria-labelledby="g-res-h"><h2 id="g-res-h">Money Grab results</h2>
+    ${best ? '<p class="hint">The $1,000 is shared by bills grabbed.</p>' : '<p class="hint">Nobody grabbed a bill. It all goes back to the bank.</p>'}
+    <ol>${rows.map((r,k)=>{ const p = s.players[r.player];
+      return `<li style="--d:${150 + k*140}ms">${tokenDisc(p)}<span class="rn">${esc(p.name)}</span><span class="gbar"><i style="--w:${r.caught/f.bills}"></i></span><span class="gc">${r.caught}</span><b>${money(r.amount)}</b></li>`; }).join('')}</ol>
+    <button class="btn primary" id="grab-done">Continue</button></div>`;
+  sfx.play('fanfare');
+  await new Promise(res=>{ const tm = setTimeout(res, 7000); $('#grab-done').focus(); $('#grab-done').onclick = ()=>{ clearTimeout(tm); res(); }; });
+  stop(); closeGrab(); ui.grabShowing = false;
 }
 /* "Sold" is stamped onto a space when it changes hands from the bank. */
 function stampSold(i){
@@ -2712,6 +3102,18 @@ function modalHTML(key){
   if(key==='pending'){
     const pd = s.pending;
     switch(pd.type){
+      case 'grab': {
+        const p = s.players[pd.player], swipe = pd.mode==='swipe', first = pd.at===0, done = pd.order.slice(0, pd.at);
+        return `<div class="grab-intro"><h2 id="modal-title">Money Grab!</h2>
+          <div class="mg-ill" aria-hidden="true"><i></i><i></i><i></i></div>
+          <p class="g-who">${tokenDisc(p)}${esc(p.name)}’s turn to grab</p>
+          <p>${swipe ? 'Ten $100 bills fly up from the bottom of the screen. Swipe through them to grab them.' : 'Ten $100 bills float down. Drag the money bag under them to catch them.'}
+            Everyone gets the same bills, one player at a time. The $1,000 is shared by how many each player grabs.</p>
+          <p class="hint">Turn ${pd.at+1} of ${pd.order.length}.${reducedMotion() ? ' Animations are off, so you may prefer to share it evenly.' : ''}</p>
+          ${done.length ? `<ul class="sofar">${done.map(q=>`<li>${esc(nm(s,q))}: ${pd.caught[q]} bill${pd.caught[q]===1?'':'s'}</li>`).join('')}</ul>` : ''}
+          <div class="row-btns" style="justify-content:center"><button class="btn primary" data-ui="grabgo" data-fid="grabgo" autofocus>${esc(p.name)}, start</button>
+          ${first ? `<button class="btn" ${act({type:'GRAB_SPLIT'})} data-fid="grabsplit">Share evenly instead</button>` : ''}</div></div>`;
+      }
       case 'roundlimit': {
         const rank = s.players.filter(p=>!p.bankrupt).map(p=>({p, w:netWorth(s,p.id)})).sort((a,b)=>b.w-a.w), lim = s.rules.roundLimit;
         return `<h2 id="modal-title">Round limit reached</h2>
@@ -2857,6 +3259,9 @@ function modalHTML(key){
       <h3>Dice rolling</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Dice rolling">${[['classic','Classic'],['immersive','Immersive']].map(([v,l])=>`<button class="btn small ${ui.rollStyle===v?'primary':''}" data-ui="rollstyle" data-v="${v}" aria-pressed="${ui.rollStyle===v}">${l}</button>`).join('')}</div>
       <p class="hint">Classic: tap Roll dice and they roll right away. Immersive: tap Roll dice to pick up the 3D dice, then flick or tap to throw them across the screen.</p>
+      <h3>Money Grab card</h3>
+      <div class="row-btns" style="margin-top:6px" role="group" aria-label="Money Grab card">${Object.entries(GRAB_MODES).map(([v,l])=>`<button class="btn small ${s.rules.grab===v?'primary':''}" data-ui="grabmode" data-v="${v}" aria-pressed="${s.rules.grab===v}">${l}</button>`).join('')}</div>
+      <p class="hint">How the Chance card Money Grab is played. Swipe: slice the bills as they fly up. Catch: catch falling bills in a bag. Each player plays in turn. Split evenly: no game.</p>
       <h3>Animations</h3>
       <div class="row-btns" style="margin-top:6px" role="group" aria-label="Animations">${[['on','On'],['off','Off']].map(([v,l])=>`<button class="btn small ${ui.motion===v?'primary':''}" data-ui="motion" data-v="${v}" aria-pressed="${ui.motion===v}">${l}</button>`).join('')}</div>
       <p class="hint">Dice, hops and flying cash.</p>
@@ -3091,6 +3496,7 @@ document.addEventListener('click', e=>{
   if(b.dataset.ui){ uiCommand(b.dataset.ui, b); return; }
   if(b.classList.contains('space')) openUser('deed:'+b.dataset.i);
 });
+$('#grab').addEventListener('cancel', e=>e.preventDefault());
 $('#modal').addEventListener('cancel', e=>{ if(requiredModal(ui.state||{})) e.preventDefault(); else { e.preventDefault(); closeUser(); } });
 document.addEventListener('change', e=>{
   if(e.target.closest && e.target.closest('.tgrid')){ readTradeForm(); updateTradeSummary(); return; }
@@ -3116,6 +3522,8 @@ function uiCommand(cmd, el){
   const s = ui.state;
   switch(cmd){
     case 'gametheme': if(el.dataset.v!==s.theme) dispatch({type:'SET_THEME', theme:el.dataset.v}).then(()=>{ if(ui.userModal==='menu') syncModal(); toast(THEMES[ui.state.theme].label+' theme.'); }); break;
+    case 'grabmode': if(el.dataset.v!==s.rules.grab) dispatch({type:'SET_GRAB', mode:el.dataset.v}).then(()=>{ if(ui.userModal==='menu') syncModal(); toast('Money Grab: '+GRAB_MODES[ui.state.rules.grab]+'.'); }); break;
+    case 'grabgo': startGrabTurn(); break;
     case 'rollstyle': ui.rollStyle = el.dataset.v==='immersive' ? 'immersive' : 'classic'; LS.set(KEY_ROLL, ui.rollStyle); syncModal();
       if(ui.rollStyle==='immersive') toast(matchMedia('(pointer:coarse)').matches ? 'Immersive rolls on. Tap Roll dice, then flick or tap.' : 'Immersive rolls on. Click Roll dice, then flick or click.');
       else toast('Classic rolls on.'); break;
@@ -3188,7 +3596,7 @@ function setTV(on, fromClick){
 }
 /* Keyboard shortcuts. Inside dialogs, Enter and Space act on the focused button as usual. */
 document.addEventListener('keydown', e=>{
-  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey || $('#whatsnew').open || $('#confirm').open) return;
+  if(!ui.state || $('#game').hidden || e.altKey || e.metaKey || $('#whatsnew').open || $('#confirm').open || $('#grab').open) return;
   if(e.target.closest && e.target.closest('input,select,textarea')) return;
   const k = e.key.length===1 ? e.key.toLowerCase() : e.key;
   if((k==='z' && e.ctrlKey) || (k==='u' && !e.ctrlKey)){ e.preventDefault(); undo(); return; }
@@ -3227,7 +3635,7 @@ const setup = (()=>{
   if(saved && Array.isArray(saved.players)) saved.players.slice(0,8).forEach((p,i)=>{ if(p && TOKENS[p.token] && COLORS.some(c=>c.hex===p.color)) players[i] = {name:String(p.name||'').slice(0,24) || players[i].name, token:p.token, color:p.color, bot:!!p.bot}; });
   const r = saved && saved.rules || {};
   return {count: saved && saved.count>=2 && saved.count<=8 ? saved.count : 4, players,
-    rules:{parking:!!r.parking, doubleGo:!!r.doubleGo, noJailRent:!!r.noJailRent, auctionTimer:+r.auctionTimer||0, end:r.end||'official'},
+    rules:{parking:!!r.parking, doubleGo:!!r.doubleGo, noJailRent:!!r.noJailRent, auctionTimer:+r.auctionTimer||0, end:r.end||'official', grab:GRAB_MODES[r.grab] ? r.grab : (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'split' : 'swipe')},
     firstMode: ['spin','roll','none'].includes(saved && saved.firstMode) ? saved.firstMode : (saved && saved.spin===false ? 'none' : 'spin'), theme: themeOf(saved && saved.theme)};
 })();
 function renderSetup(){
@@ -3247,17 +3655,17 @@ function saveSetup(){ LS.set(KEY_SETUP, JSON.stringify(setup)); }
 function renderRules(){
   const r = setup.rules;
   $('#r-parking').checked = r.parking; $('#r-doublego').checked = r.doubleGo; $('#r-jailrent').checked = r.noJailRent;
-  $('#r-timer').value = String(r.auctionTimer); $('#r-end').value = r.end; $('#first-mode').value = setup.firstMode;
+  $('#r-timer').value = String(r.auctionTimer); $('#r-end').value = r.end; $('#r-grab').value = r.grab; $('#first-mode').value = setup.firstMode;
 }
 function readRules(){
   setup.rules = {parking:$('#r-parking').checked, doubleGo:$('#r-doublego').checked, noJailRent:$('#r-jailrent').checked,
-    auctionTimer:+$('#r-timer').value, end:$('#r-end').value};
+    auctionTimer:+$('#r-timer').value, end:$('#r-end').value, grab:$('#r-grab').value};
   setup.firstMode = $('#first-mode').value;
 }
 function engineRules(r){
   const [kind, n] = r.end.split(':');
   return {parking:r.parking, doubleGo:r.doubleGo, noJailRent:r.noJailRent, auctionTimer:r.auctionTimer,
-    quick:kind==='quick', roundLimit:kind==='rounds'?+n:0, timeLimit:kind==='time'?+n:0};
+    quick:kind==='quick', roundLimit:kind==='rounds'?+n:0, timeLimit:kind==='time'?+n:0, grab:r.grab||'swipe'};
 }
 $('#setup-form').addEventListener('input', e=>{
   const t = e.target;
@@ -3497,10 +3905,10 @@ function runTests(){
   t('Advance to Go collects $200', ()=>{ let s = drawState('chance', f=>f.advanceTo===0); s.players[0].pos = 7; s = R(s,{type:'CARD_ACK'}); eq(s.players[0].pos,0); eq(s.players[0].cash,1700); });
   t('Get Out of Jail Free is kept, used, and returned to the deck bottom', ()=>{
     let s = base(); s.decks.chance = [GOOJF_ID.chance, ...s.decks.chance.filter(x=>x!==GOOJF_ID.chance)];
-    s.debugDice = [[3,4]]; s = R(s,{type:'ROLL'}); eq(s.pending.type,'card'); eq(s.decks.chance.length, 15);
+    s.debugDice = [[3,4]]; s = R(s,{type:'ROLL'}); eq(s.pending.type,'card'); eq(s.decks.chance.length, 16);
     s = R(s,{type:'CARD_ACK'}); eq(s.players[0].cards, ['chance']);
     Object.assign(s.players[0], {pos:10, inJail:true}); s.phase = 'start';
-    s = R(s,{type:'JAIL_CARD'}); eq(s.players[0].inJail,false); eq(s.decks.chance.length,16); eq(s.decks.chance[15], GOOJF_ID.chance);
+    s = R(s,{type:'JAIL_CARD'}); eq(s.players[0].inJail,false); eq(s.decks.chance.length,17); eq(s.decks.chance[16], GOOJF_ID.chance);
   });
   t('Debt blocks play until paid', ()=>{
     let s = base(); s.players[0].cash = 100; own(s,0,[39]); s.debugDice = [[1,3]];
@@ -3615,6 +4023,38 @@ function runTests(){
     s.debts = [{debtor:0, creditor:null, amount:99999, reason:'test'}]; s = R(s,{type:'BANKRUPT'}); eq(s.phase!=='over', true, 'over too early');
     s.debts = [{debtor:1, creditor:null, amount:99999, reason:'test'}]; s = R(s,{type:'BANKRUPT'});
     eq(s.phase, 'over'); eq(s.endReason, 'quick'); eq(s.winner, [2,3].reduce((a,b)=>netWorth(s,b)>netWorth(s,a)?b:a));
+  });
+  t('Money Grab: each player grabs in turn and the $1,000 is shared by bills grabbed', ()=>{
+    let s = drawState('chance', f=>f.grab); s = R(s,{type:'CARD_ACK'});
+    eq(s.pending.type, 'grab'); eq(s.pending.order, [0,1,2]); eq(s.pending.player, 0);
+    throws(()=>R(s,{type:'GRAB_SCORE', player:1, caught:3}));
+    throws(()=>R(s,{type:'GRAB_SCORE', player:0, caught:11}));
+    throws(()=>R(s,{type:'GRAB_SCORE', player:0, caught:null}));
+    throws(()=>R(s,{type:'SET_GRAB', mode:'catch'}));
+    s = R(s,{type:'GRAB_SCORE', player:0, caught:4}); eq(s.pending.player, 1);
+    throws(()=>R(s,{type:'GRAB_SPLIT'}));
+    s = R(s,{type:'GRAB_SCORE', player:1, caught:2}); s = R(s,{type:'GRAB_SCORE', player:2, caught:0});
+    eq(s.pending, null); eq(s.players.map(p=>p.cash), [1500+670, 1500+330, 1500]);
+  });
+  t('Money Grab: shares add up to $1,000 and nobody grabbing pays nothing', ()=>{
+    let s = drawState('chance', f=>f.grab); s = R(s,{type:'CARD_ACK'});
+    for(const q of [0,1,2]) s = R(s,{type:'GRAB_SCORE', player:q, caught:3});
+    eq(s.players.reduce((n,p)=>n+p.cash, 0), 4500+1000); eq(s.players.map(p=>p.cash), [1840,1830,1830]);
+    let z = R(drawState('chance', f=>f.grab),{type:'CARD_ACK'});
+    for(const q of [0,1,2]) z = R(z,{type:'GRAB_SCORE', player:q, caught:0});
+    eq(z.players.map(p=>p.cash), [1500,1500,1500]);
+  });
+  t('Money Grab: split evenly, starting order and bots', ()=>{
+    let s = drawState('chance', f=>f.grab); s.rules.grab = 'split'; s = R(s,{type:'CARD_ACK'});
+    eq(s.pending, null); eq(s.players.map(p=>p.cash), [1830,1830,1830]);
+    let t2 = drawState('chance', f=>f.grab); t2 = R(t2,{type:'CARD_ACK'}); t2 = R(t2,{type:'GRAB_SPLIT'}); eq(t2.players.map(p=>p.cash), [1830,1830,1830]);
+    let o = drawState('chance', f=>f.grab); o.pending.player = 1; o = R(o,{type:'CARD_ACK'}); eq(o.pending.order, [1,2,0]);
+    let b = drawState('chance', f=>f.grab); b.players[1].bot = true; b = R(b,{type:'CARD_ACK'}); b = R(b,{type:'GRAB_SCORE', player:0, caught:5});
+    const a = botAction(b, true); eq(a.type, 'GRAB_SCORE'); b = R(b, a); const c = b.pending.caught[1]; eq(c>=3 && c<=8, true);
+    eq(botAction(b, true), null);
+    let m = base(); m = R(m,{type:'SET_GRAB', mode:'catch'}); eq(m.rules.grab, 'catch'); throws(()=>R(m,{type:'SET_GRAB', mode:'catch'})); throws(()=>R(m,{type:'SET_GRAB', mode:'bogus'}));
+    eq(CHANCE.length, 17); eq(base().decks.chance.length, 17);
+    const old = base(); old.decks.chance = old.decks.chance.filter(i=>!CHANCE[i].fx.grab); delete old.rules.grab; migrate(old); eq(old.decks.chance.length, 17); eq(old.rules.grab, 'swipe');
   });
   t('Round limit ends the game and the richest player wins', ()=>{
     let s = ruled({roundLimit:2}, 2); s.players[1].cash = 3000;

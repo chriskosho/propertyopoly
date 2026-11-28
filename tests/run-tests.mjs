@@ -770,6 +770,53 @@ const fresh = async (opts = {}) => { const { keepDefaults, ...o } = opts; const 
   await ctx.close();
 }
 
+// 21. Money Grab: swipe game for each player, results, split evenly, and the menu setting.
+{
+  const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 } });
+  await page.goto(url);
+  await page.click('input[name=count][value="2"]', { force: true });
+  await page.selectOption('#first-mode', 'none');
+  if ((await page.inputValue('#r-grab')) !== 'swipe') problems.push('grab: setup should default to Swipe');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('#game:not([hidden])');
+  const drawGrab = () => page.evaluate(() => { const s = __mono.ui.state; s.cur = 0; s.pending = { type: 'card', player: 0, deck: 'chance', card: CHANCE.findIndex(c => c.fx.grab) }; s.phase = 'end'; render(); });
+  await drawGrab();
+  await page.waitForSelector('#modal[open] [data-a]'); await page.click('#modal [data-a]');
+  await page.waitForSelector('#modal[open] .grab-intro').catch(() => problems.push('grab: no intro window'));
+  if (!/Player 1, start/.test(await page.locator('[data-ui=grabgo]').innerText())) problems.push('grab: the first grabber should be the player who drew the card');
+  await page.click('[data-ui=grabgo]');
+  await page.waitForSelector('#grab[open] canvas');
+  await page.waitForTimeout(1700);
+  for (let k = 0; k < 14; k++) { await page.keyboard.press('Space'); await page.waitForTimeout(350); }
+  await page.waitForSelector('#grab-done', { timeout: 20000 });
+  const got = +(await page.locator('#gh-count b').innerText());
+  if (!(got > 0)) problems.push('grab: Space did not grab any bills');
+  await page.click('#grab-done');
+  await page.waitForSelector('#modal[open] .grab-intro');
+  if (!/Player 2, start/.test(await page.locator('[data-ui=grabgo]').innerText())) problems.push('grab: the second player should be next');
+  if (await page.locator('[data-a*=GRAB_SPLIT]').count()) problems.push('grab: Share evenly should only be offered before anyone grabs');
+  await page.click('[data-ui=grabgo]');
+  await page.waitForSelector('#grab-done', { timeout: 20000 });
+  await page.click('#grab-done');
+  await page.waitForSelector('#grab .g-res', { timeout: 5000 }).catch(() => problems.push('grab: no results'));
+  if ((await page.locator('#grab .g-res li').count()) !== 2) problems.push('grab: results should list 2 players');
+  await page.click('#grab-done');
+  await page.waitForFunction(() => !__mono.ui.animating && !document.querySelector('#grab').open, null, { timeout: 15000 });
+  const cash = await page.evaluate(() => __mono.ui.state.players.map(p => p.cash));
+  if (cash[0] !== 2500 || cash[1] !== 1500) problems.push('grab: the only grabber should get all $1,000, saw ' + cash);
+  // menu: switch to Split evenly, then the card pays evenly with no game
+  await page.click('#menu-btn'); await page.click('#modal [data-ui=grabmode][data-v=split]');
+  if ((await page.evaluate(() => __mono.ui.state.rules.grab)) !== 'split') problems.push('grab: menu did not switch to Split evenly');
+  await page.click('#modal [data-ui=close] >> nth=-1');
+  await drawGrab();
+  await page.waitForSelector('#modal[open] [data-a]'); await page.click('#modal [data-a]');
+  await page.waitForFunction(() => !__mono.ui.animating && !document.querySelector('#grab').open, null, { timeout: 15000 });
+  const cash2 = await page.evaluate(() => __mono.ui.state.players.map(p => p.cash));
+  if (cash2[0] !== 3000 || cash2[1] !== 2000) problems.push('grab: split evenly should pay $500 each, saw ' + cash2);
+  console.log('Money Grab test done');
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
