@@ -35,7 +35,7 @@ const watch = page => {
   page.on('console', m => { if (m.type() === 'error') problems.push('console error: ' + m.text()); });
   page.on('pageerror', e => problems.push('page error: ' + e.message));
 };
-const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts); const page = await ctx.newPage(); watch(page); return { ctx, page }; };
+const fresh = async (opts = {}) => { const { keepDefaults, ...o } = opts; const ctx = await browser.newContext(o); if (!keepDefaults) await ctx.addInitScript(() => { try { if (!localStorage.getItem('mono.rollStyle')) localStorage.setItem('mono.rollStyle', 'classic'); } catch (e) {} }); const page = await ctx.newPage(); watch(page); return { ctx, page }; };
 
 // 1. Rule tests
 {
@@ -473,14 +473,14 @@ const fresh = async (opts = {}) => { const ctx = await browser.newContext(opts);
 
 // 14. Immersive rolling: menu toggle, tap picks the dice up, tap/flick throws, 3D dice settle on the rolled faces.
 {
-  const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 }, hasTouch: true });
+  const { ctx, page } = await fresh({ viewport: { width: 390, height: 800 }, hasTouch: true, keepDefaults: true });
   await page.goto(url);
   await page.click('input[name=count][value="2"]', { force: true });
   await page.selectOption('#first-mode', 'none');
   await page.click('button[type=submit]');
   await page.waitForSelector('#game:not([hidden])');
   const st = () => page.evaluate(() => localStorage.getItem('mono.rollStyle'));
-  if ((await st()) === 'immersive') problems.push('immersive: should be off by default');
+  if ((await page.evaluate(() => __mono.ui.rollStyle)) !== 'immersive') problems.push('immersive: should be on by default');
   await page.click('#menu-btn'); await page.click('#modal [data-ui=rollstyle][data-v=immersive]');
   if ((await st()) !== 'immersive') problems.push('immersive: menu toggle did not save');
   await page.click('#modal-x');
