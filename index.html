@@ -1626,8 +1626,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.15.0';
+const APP_VERSION = '2.15.1';
 const RELEASES = [
+  {version:'2.15.1', date:'2026-11-27', title:'Immersive rolling is the default', changes:[
+    'New games start with Immersive dice rolling. Switch back to Classic in the menu any time; your choice is remembered.',
+  ]},
   {version:'2.15.0', date:'2026-11-27', title:'Luxury Tax and extending round-limited games', changes:[
     'Luxury Tax is now $100.',
     'In a game with a round limit, reaching the last round no longer ends it automatically. You can end it with the richest player winning, add 3, 5 or 10 more rounds, or play on until one player is left.']},
@@ -1727,7 +1730,7 @@ const ui = {state:null, history:[], modalKey:null, userModal:null, animating:fal
   overDismissed:false, tradeDraft:null, tradeOpen:new Set(), tradeGate:null, muted:LS.get(KEY_MUTE)==='1', showLog:LS.get(KEY_LOG)==='1', tv:LS.get(KEY_TV)==='1', confirmNew:false, lastRingPos:null,
   motion:LS.get(KEY_MOTION)==='off' ? 'off' : 'on',
   theme:LS.get(KEY_THEME)==='dark' ? 'dark' : 'light',
-  rollStyle:LS.get(KEY_ROLL)==='immersive' ? 'immersive' : 'classic', throwVel:null,
+  rollStyle:LS.get(KEY_ROLL)==='classic' ? 'classic' : 'immersive', throwVel:null,
   hl:null, botTimer:null, spin:null, auctionKey:null, auctionEnds:0, installEvt:null};
 /* Animations are on by default; the Game menu can turn them off. An old saved 'auto' counts as on. */
 const reducedMotion = () => ui.motion==='off';
