@@ -569,6 +569,21 @@ const fresh = async (opts = {}) => { const { keepDefaults, ...o } = opts; const 
   await page.waitForSelector('#modal[open] #modal-title');
   const mt = await page.locator('#modal-title').innerText(), mb = await page.locator('#modal-body').innerText();
   if (mt !== 'Mortgage' || /Add house/.test(mb) || !/Mortgage, \+/.test(mb) || !/Reading Railroad/.test(mb)) problems.push('build/mortgage: Mortgage screen content wrong: ' + mt + ' / ' + mb.slice(0, 300));
+  // mortgaging asks first: cancel keeps the property, confirm mortgages it, unmortgage asks too
+  const mortd = () => page.evaluate(() => __mono.ui.state.props[1].mortgaged);
+  await page.click('#modal [data-fid=m1]');
+  await page.waitForSelector('#confirm[open]');
+  if (!/Mortgage .+\?/.test(await page.locator('#confirm-title').innerText()) || !/\$30/.test(await page.locator('#confirm-body').innerText())) problems.push('mortgage confirm: wrong text: ' + await page.locator('#confirm-body').innerText());
+  await page.click('#confirm [data-no]');
+  if (await mortd()) problems.push('mortgage confirm: Cancel still mortgaged the property');
+  await page.click('#modal [data-fid=m1]'); await page.waitForSelector('#confirm[open]'); await page.click('#confirm [data-yes]');
+  await page.waitForFunction(() => __mono.ui.state.props[1].mortgaged, null, { timeout: 5000 }).catch(() => problems.push('mortgage confirm: Yes did not mortgage'));
+  await page.waitForFunction(() => !__mono.ui.animating);
+  await page.click('#modal [data-fid=u1]'); await page.waitForSelector('#confirm[open]');
+  if (!/Unmortgage/.test(await page.locator('#confirm-title').innerText())) problems.push('mortgage confirm: unmortgage did not ask');
+  await page.click('#confirm [data-yes]');
+  await page.waitForFunction(() => !__mono.ui.state.props[1].mortgaged, null, { timeout: 5000 }).catch(() => problems.push('mortgage confirm: Yes did not unmortgage'));
+  await page.waitForFunction(() => !__mono.ui.animating);
   await page.click('#modal [data-ui=close] >> nth=-1');
   // money bag: present, small when empty, bigger with a full pot
   const bs = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.space.t-parking .bag')).getPropertyValue('--bs')));

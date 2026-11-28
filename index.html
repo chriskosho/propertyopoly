@@ -1626,8 +1626,11 @@ const LS = {
 /* Versions. Every release that reaches the site gets a new number and a RELEASES entry
    (newest first); the deploy step publishes the number as version.json, and running copies
    check it to know when to update themselves. */
-const APP_VERSION = '2.16.0';
+const APP_VERSION = '2.16.1';
 const RELEASES = [
+  {version:'2.16.1', date:'2026-11-28', title:'Confirm before mortgaging', changes:[
+    'Mortgaging or unmortgaging a property now asks you to confirm first, and shows the money involved.',
+  ]},
   {version:'2.16.0', date:'2026-11-27', title:'Undo reaches back three steps', changes:[
     'Undo now takes back up to the last three actions, even across a turn change, so an accidental tap while passing the phone can be fixed.',
   ]},
@@ -2543,6 +2546,14 @@ function askConfirm(o){
     d.showModal();
   });
 }
+/* Mortgaging and unmortgaging move real money, so they ask first. */
+function confirmMortgage(act){
+  const sp = BOARD[act.space], back = unmortgageCost(act.space), un = act.type==='UNMORTGAGE';
+  askConfirm(un
+    ? {title:`Unmortgage ${sp.name}?`, text:`You pay the bank ${money(back)}, the mortgage value plus 10%. ${sp.name} collects rent again.`, yes:`Unmortgage for ${money(back)}`, no:'Cancel'}
+    : {title:`Mortgage ${sp.name}?`, text:`You receive ${money(sp.mort)} from the bank. ${sp.name} collects no rent while it is mortgaged, and unmortgaging it later costs ${money(back)}.`, yes:`Mortgage for ${money(sp.mort)}`, no:'Cancel'}
+  ).then(ok=>{ if(ok) dispatch(act); });
+}
 /* Step through the cards in the row the deed was opened from (for sale, or a player's holdings). */
 function deedStep(d){
   const k = ui.userModal; if(!k || !k.startsWith('deed:') || !ui.deedList) return;
@@ -3075,6 +3086,7 @@ document.addEventListener('click', e=>{
   if(b.dataset.a){ const act = JSON.parse(b.dataset.a);
     if((act.type==='ROLL' || act.type==='JAIL_ROLL') && immersiveOn() && ui.state && !ui.state.players[ui.state.cur].bot && !ui.animating){
       if(ui.held) throwHeld(null); else armRoll(act); return; }
+    if(act.type==='MORTGAGE' || act.type==='UNMORTGAGE'){ confirmMortgage(act); return; }
     dispatch(act); return; }
   if(b.dataset.ui){ uiCommand(b.dataset.ui, b); return; }
   if(b.classList.contains('space')) openUser('deed:'+b.dataset.i);
